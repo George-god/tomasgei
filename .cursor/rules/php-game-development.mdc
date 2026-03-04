@@ -1,0 +1,404 @@
+---
+description: Competitive multiplayer cultivation RPG monolith development standards
+globs: **/*.php
+alwaysApply: false
+---
+
+# Competitive Multiplayer Cultivation RPG - Monolith Development Standards
+
+## Project Overview
+
+This is a competitive multiplayer cultivation RPG built as a structured PHP monolith. The game features manual cultivation, realm breakthroughs with Heavenly Tribulation, asynchronous PvP battles, sect wars, territory control, era cycles, and a Hall of Legends system.
+
+## Tech Stack
+
+- **PHP 8+** - Modern PHP with strict types and type hints
+- **MySQL** - Database for persistent game data
+- **PDO** - Prepared statements only, no raw SQL
+- **TailwindCSS via CDN** - Utility-first CSS framework
+- **OOP Architecture** - Object-oriented design throughout
+- **Session-based Authentication** - No frameworks, vanilla PHP
+- **No Frameworks** - Pure PHP implementation
+- **No Microservices** - Monolith architecture
+- **No REST API Layer** - Direct page-to-service communication
+
+## Architecture Principles
+
+### Core Principles
+
+- **Fully server-authoritative logic** - All game calculations happen server-side
+- **Never trust frontend values** - Always validate and recalculate server-side
+- **No business logic inside page files** - Pages only handle HTTP requests/responses
+- **All logic organized inside `/classes` as service classes** - Business logic in service layer
+- **Database connection isolated in `/config/database.php`** - Single source for DB connection
+- **No SQL inside view files** - Views only display data
+- **Clean modular structure** - Organized, maintainable code
+- **Avoid duplication** - Extract common functionality
+- **Centralized stat calculation in StatCalculator** - Single source of truth for stats
+- **Expandable combat engine** - Design for future additions
+- **Avoid overengineering but maintain scalability** - Balance simplicity with growth potential
+
+### Directory Structure
+
+```
+/classes          - All business logic classes (entities, services)
+  /Entity         - Data models
+  /Service        - Business logic services
+/config           - Configuration files (database.php)
+/views            - Presentation layer (HTML/PHP templates)
+/public           - Public assets (CSS, JS, images)
+```
+
+### Code Organization
+
+- Use namespaces: `Game\Entity`, `Game\Service`, `Game\Config`
+- Service classes handle all business logic
+- Entities are data containers with minimal logic
+- Views only display data from services
+- No calculations in views or page files
+
+## Core Systems
+
+### Authentication
+
+- Secure password hashing with `password_hash()` and `password_verify()`
+- Session-based authentication
+- CSRF-ready structure for forms
+- Input validation and sanitization
+
+### Cultivation System
+
+- **Manual click-based action** - User clicks to cultivate
+- **Cooldown enforced server-side** - Prevent spam, check `last_cultivation_at`
+- **Random chi gain scaled by level** - Higher level = more chi gain potential
+- **Realm multiplier applied** - Realm affects cultivation efficiency
+- **Exponential max_chi growth** - Max chi scales exponentially with level
+- **Store last_cultivation_at** - Track cooldown timestamps
+- **Prevent spam** - Rate limiting and cooldown checks
+
+### Realm Breakthrough System
+
+- **Triggered manually** - User initiates breakthrough
+- **Success chance based on level surplus** - Higher level = better chance
+- **If success → Heavenly Tribulation** - Must survive tribulation
+- **If failure → Chi penalty and cooldown penalty** - Setback on failure
+- **No realm downgrade** - Realms only increase, never decrease
+
+### Heavenly Tribulation System
+
+- **Triggered after breakthrough success roll** - Part of breakthrough process
+- **3–7 lightning strikes** - Random number of strikes
+- **Percentage-based damage** - Damage scales with max chi
+- **Apply defense, dodge, realm resistance** - Multiple mitigation factors
+- **If HP <= 0 → fail** - Death = breakthrough failure
+- **If survive → realm ascends** - Success = realm advancement
+- **Grant one random permanent minor blessing** - Reward for surviving
+- **Blessings stored in tribulation_blessings table** - Permanent stat bonuses
+- **Blessings stack by small percentages** - Multiple blessings accumulate
+- **Use TribulationService class** - Isolated tribulation logic
+- **Store tribulation logs** - Complete history of tribulations
+
+### Stat Calculation Layer
+
+All final stats must be calculated dynamically in `StatCalculator`:
+
+**Order of calculation:**
+1. Base Stats
+2. + Realm multipliers
+3. + Tribulation blessings
+4. + Sect territory bonus
+5. + Global territory realm influence
+6. + Era-based modifiers
+7. = Final combat stats
+
+**Important:**
+- Never permanently modify base stats in database
+- Always calculate final stats dynamically
+- StatCalculator is the single source of truth
+- Apply all modifiers in correct order
+
+### Combat System
+
+- **Turn-based simulation** - Alternating turns
+- **Server-authoritative** - All calculations server-side
+- **±10% damage variance** - Random damage variation
+- **Passive procs:**
+  - Critical strike (configurable chance)
+  - Lifesteal (percentage of damage)
+  - Dodge (chance to avoid damage)
+  - Counterattack (chance to counter)
+- **Realm-based mechanics:**
+  - Defense penetration
+  - Damage reflection
+  - Revival (chance to survive fatal blow)
+  - Realm suppression (higher realm vs lower)
+- **Realm mechanics isolated in RealmEffects class** - No hardcoded realm IDs in BattleService
+- **Store every turn in battle_logs** - Complete battle history
+- **Replay must use stored logs only** - Never re-simulate battles
+
+### PvP System
+
+- **Asynchronous challenge model** - Players challenge, battles simulate automatically
+- **Opponents restricted to ±150 rating range** - Matchmaking by rating
+- **Range validated server-side** - Never trust client for matchmaking
+- **Prevent repeated farming** - Anti-farming protections
+- **Limit challenges per opponent per hour** - Rate limiting
+- **PvP defeat causes 5% current chi loss** - Penalty for losing
+- **Chi cannot go below zero** - Enforce minimum
+- **Store chi loss in battle record** - Track penalties
+- **Update ELO after battle resolution** - Rating changes
+
+### Sect System
+
+- **Players can create and join sects** - Guild functionality
+- **Roles: leader, elder, disciple** - Hierarchical structure
+- **Sects control territories** - Territory ownership
+- **Territory bonuses applied dynamically** - Via StatCalculator
+- **Sect wars reuse PvP simulation engine** - Same battle system
+- **War results stored permanently** - Historical records
+
+### Territory System
+
+- **Territories grant:**
+  - Sect bonus (to sect members)
+  - Global realm influence (affects all players in realm)
+- **Global influence affects all players in specific realm** - Realm-wide effects
+- **Effects can include:**
+  - Stat boosts
+  - Cultivation efficiency
+  - Tribulation resistance
+  - Realm pressure debuffs
+- **Applied dynamically in StatCalculator** - Calculated on-the-fly
+
+### World State System
+
+- **world_state table tracks realm pressure** - Global game state
+- **Pressure may affect tribulation difficulty or PvP** - Dynamic difficulty
+- **Designed for future global events** - Extensible system
+
+### Era Cycle System
+
+- **World operates in time-limited eras** - Seasonal cycles
+- **Each era has start_date and end_date** - Defined time periods
+- **At era end:**
+  - Snapshot player rankings
+  - Snapshot sect rankings
+  - Store era history
+  - Reset ratings
+  - Reset territories
+  - Reset world pressure
+  - Preserve realms, levels, blessings
+- **No major permanent power creep** - Eras prevent infinite growth
+- **Hall of Legends page required** - Display historical achievements
+
+## Database Structure
+
+### Required Tables (Normalized)
+
+Must include these tables with proper relationships:
+
+- **users** - Player accounts with cultivation stats
+- **realms** - Cultivation realm definitions
+- **tribulation_blessings** - Permanent stat bonuses from tribulations
+- **battles** - PvP battle records
+- **battle_logs** - Detailed battle turn logs
+- **rankings** - ELO-based ranking system
+- **notifications** - User notifications
+- **sects** - Guild/faction data
+- **sect_members** - Sect membership with roles
+- **territories** - Territory definitions and ownership
+- **sect_wars** - Sect war records
+- **eras** - Era cycle definitions
+- **era_rankings** - Historical player rankings per era
+- **era_sect_rankings** - Historical sect rankings per era
+- **world_state** - Global game state (realm pressure, etc.)
+
+### Data Types
+
+- **BIGINT for chi** - Large numbers for chi values
+- **FLOAT for percentage modifiers** - Decimal percentages
+- **INT for IDs** - Standard integer IDs
+- **Proper indexes** - On rating, user_id, sect_id, era_id, territory_id
+
+### Database Design Principles
+
+- Use foreign keys for referential integrity
+- Index frequently queried columns
+- Normalize data to prevent duplication
+- Use appropriate data types
+- Include created_at/updated_at timestamps where needed
+- Design for concurrent access
+
+## Security
+
+### Password Security
+
+- **password_hash()** - Use `PASSWORD_DEFAULT` for hashing
+- **password_verify()** - Use for password verification
+- Never store plain text passwords
+
+### SQL Injection Prevention
+
+- **Prepared statements only** - PDO prepared statements exclusively
+- Never concatenate user input into SQL queries
+- Use parameterized queries for all database operations
+
+### Input Validation
+
+- **Validate and sanitize inputs** - Check all user-provided data
+- Use type hints and strict types
+- Validate data ranges and formats
+- Sanitize output with `htmlspecialchars()` when displaying
+
+### Session Protection
+
+- **Session protection** - Verify authentication on all game endpoints
+- Regenerate session ID on login: `session_regenerate_id(true)`
+- Validate session data before trusting it
+- Set secure session cookie flags in production
+
+### Server Authority
+
+- **Never trust frontend values** - Always validate server-side
+- All game calculations happen server-side
+- Client only receives results to display
+- Validate user state before allowing actions
+
+## UI Rules
+
+### Styling Framework
+
+- **TailwindCSS only** - No Bootstrap or other CSS frameworks
+- Load TailwindCSS via CDN in HTML head
+- Use utility classes for all styling
+
+### Design Theme
+
+- **Modern dark cultivation theme** - Dark backgrounds with mystical accents
+- **Responsive layout** - Mobile-first approach
+- **Dashboard stat cards** - Display stats in card components
+- **Animated chi progress bar** - Visual representation with animations
+- **Realm badge glow** - Distinctive glowing badges for different realms
+- **Leaderboard page** - Display top players with pagination
+- **Battle replay animation** - Animate battle turns from stored logs
+- **Territory map page** - Visual territory control display
+- **Hall of Legends page** - Historical era achievements
+
+### Color Palette
+
+- Dark backgrounds: `bg-gray-900`, `bg-slate-900`
+- Accent colors: `text-cyan-400`, `text-blue-400` for mystical feel
+- Glow effects: `shadow-cyan-500/50`, `shadow-blue-500/50`
+- Progress bars: Gradient from cyan to blue
+- Critical strike indicators: `text-red-400`, `text-yellow-400`
+
+## Code Style
+
+### General Principles
+
+- **Clean** - Readable, well-formatted code
+- **Modular** - Organized into logical modules
+- **Comment complex calculations** - Explain mathematical formulas
+- **Suggest structural improvements when appropriate** - Help improve architecture
+- **Avoid duplication** - Extract common functionality
+- **Prioritize maintainability and scalability** - Balance simplicity with growth
+
+### Code Examples
+
+### Service Pattern
+
+```php
+// /classes/Service/CultivationService.php
+namespace Game\Service;
+
+class CultivationService {
+    /**
+     * Process cultivation action
+     * Server-authoritative: validates cooldown, calculates chi gain
+     */
+    public function cultivate(int $userId): array {
+        // Check cooldown server-side
+        // Calculate chi gain server-side
+        // Update database
+        // Return result
+    }
+}
+```
+
+### Stat Calculator Pattern
+
+```php
+// /classes/Service/StatCalculator.php
+namespace Game\Service;
+
+class StatCalculator {
+    /**
+     * Calculate final combat stats
+     * Order: Base → Realm → Blessings → Territory → Global → Era
+     */
+    public function calculateFinalStats(int $userId): array {
+        $base = $this->getBaseStats($userId);
+        $realm = $this->applyRealmMultipliers($base, $userId);
+        $blessings = $this->applyBlessings($realm, $userId);
+        $territory = $this->applyTerritoryBonus($blessings, $userId);
+        $global = $this->applyGlobalInfluence($territory, $userId);
+        $era = $this->applyEraModifiers($global, $userId);
+        return $era;
+    }
+}
+```
+
+### Entity Pattern
+
+```php
+// /classes/Entity/User.php
+namespace Game\Entity;
+
+class User {
+    private int $id;
+    private int $realmId;
+    private int $level;
+    private int $chi;
+    private int $maxChi;
+    // ... other fields
+    
+    // Getters/setters only
+    // No business logic in entities
+}
+```
+
+### View Separation Pattern
+
+```php
+// ✅ GOOD - View only displays data
+<?php
+$user = $userService->getCurrentUser();
+$stats = $statCalculator->calculateFinalStats($user->getId());
+?>
+<div class="stat-card">
+    <p>Chi: <?php echo htmlspecialchars($stats['chi']); ?></p>
+</div>
+
+// ❌ BAD - Don't put SQL or calculations in views
+<?php
+$db = Database::getConnection();
+$damage = $attack * 1.5; // NO - calculations belong in services
+?>
+```
+
+## Best Practices
+
+- Always suggest improvements if architecture can be cleaner
+- Prefer composition over inheritance
+- Use dependency injection for testability
+- Keep methods small and focused
+- Use meaningful variable and method names
+- Document complex game mechanics (ELO formulas, damage calculations, tribulation formulas)
+- Design for extensibility from the start
+- Consider performance for multiplayer scenarios
+- Use transactions for multi-step operations
+- Implement proper error handling and logging
+- All calculations must be server-side
+- Never trust client-provided values
+- Maintain monolith structure - avoid overengineering
+- Keep code modular but within monolith boundaries
