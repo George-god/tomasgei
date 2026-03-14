@@ -58,9 +58,17 @@
             var line = document.createElement('div');
             line.className = 'text-gray-300';
             if (entry.attacker === 'user') {
-                line.innerHTML = 'Turn ' + entry.turn + ': You hit for <span class="text-red-400">' + formatNum(entry.damage) + '</span> damage.';
+                if (entry.technique_name) {
+                    line.innerHTML = 'Turn ' + entry.turn + ': You use <span class="text-cyan-300">' + entry.technique_name + '</span> for <span class="text-red-400">' + formatNum(entry.damage) + '</span> damage.';
+                } else {
+                    line.innerHTML = 'Turn ' + entry.turn + ': You hit for <span class="text-red-400">' + formatNum(entry.damage) + '</span> damage.';
+                }
             } else {
-                line.innerHTML = 'Turn ' + entry.turn + ': ' + (data.npc_name || 'Enemy') + ' hits you for <span class="text-red-400">' + formatNum(entry.damage) + '</span> damage.';
+                if (entry.action_type === 'dodge') {
+                    line.innerHTML = 'Turn ' + entry.turn + ': You evade ' + (data.npc_name || 'Enemy') + '\'s attack.';
+                } else {
+                    line.innerHTML = 'Turn ' + entry.turn + ': ' + (data.npc_name || 'Enemy') + ' hits you for <span class="text-red-400">' + formatNum(entry.damage) + '</span> damage.';
+                }
             }
             if (battleLog) battleLog.appendChild(line);
             battleLog.scrollTop = battleLog.scrollHeight;
@@ -107,6 +115,8 @@
         if (!btn || btn.disabled) return;
         var npcId = btn.getAttribute('data-npc-id');
         var npcName = btn.getAttribute('data-npc-name') || 'Enemy';
+        var card = btn.parentElement;
+        var techniqueToggle = card ? card.querySelector('.pve-technique-toggle') : null;
         if (!npcId) return;
 
         showBattlePanel(npcName);
@@ -118,8 +128,9 @@
 
         var form = new FormData();
         form.append('npc_id', npcId);
+        form.append('use_dao_techniques', techniqueToggle && techniqueToggle.checked ? '1' : '0');
 
-        fetch('pve_attack.php', {
+        fetch('../controllers/pve_attack.php', {
             method: 'POST',
             body: form
         })
@@ -138,3 +149,4 @@
             });
     });
 })();
+

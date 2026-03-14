@@ -21,7 +21,7 @@
         var formData = new FormData();
         formData.append('inventory_id', inventoryId);
 
-        fetch('equip_item.php', {
+        fetch('../controllers/equip_item.php', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
@@ -48,3 +48,4 @@
         });
     });
 })();
+

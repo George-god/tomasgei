@@ -71,7 +71,7 @@
         setButtonDisabled(true, '⏳ Cultivating…');
         showStatus('');
 
-        fetch('cultivate_action.php', {
+        fetch('../controllers/cultivate_action.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
             body: 'action=cultivate'
@@ -105,3 +105,4 @@
         startCooldown(initialCooldown);
     }
 })();
+
