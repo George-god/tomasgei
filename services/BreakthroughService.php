@@ -5,6 +5,7 @@ namespace Game\Service;
 
 require_once __DIR__ . '/ItemService.php';
 require_once __DIR__ . '/TribulationService.php';
+require_once __DIR__ . '/SectService.php';
 
 use Game\Config\Database;
 use PDOException;

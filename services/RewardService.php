@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/SectService.php';
+
 use Game\Config\Database;
 use PDO;
 use PDOException;
