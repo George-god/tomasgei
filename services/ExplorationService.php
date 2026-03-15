@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Game\Service;
 
 require_once __DIR__ . '/CultivationManualService.php';
+require_once __DIR__ . '/PvEBattleService.php';
 
 use Game\Config\Database;
 use PDO;

@@ -76,8 +76,18 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
             body: 'action=cultivate'
         })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
+            .then(function (res) {
+                return res.text().then(function (text) {
+                    try {
+                        return { data: JSON.parse(text), ok: res.ok, status: res.status };
+                    } catch (e) {
+                        var snippet = text ? text.substring(0, 300).replace(/\s+/g, ' ') : '(empty)';
+                        throw new Error('Server returned invalid JSON. Check PHP error log. Response: ' + snippet);
+                    }
+                });
+            })
+            .then(function (result) {
+                var data = result.data;
                 if (data.success && data.data) {
                     var d = data.data;
                     updateChiBar(d.chi, d.max_chi);
@@ -95,8 +105,8 @@
                     }
                 }
             })
-            .catch(function () {
-                showStatus('Request failed. Try again.', true);
+            .catch(function (err) {
+                showStatus(err && err.message ? err.message : 'Request failed. Try again.', true);
                 setButtonDisabled(false);
             });
     });

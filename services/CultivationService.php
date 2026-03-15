@@ -55,9 +55,15 @@ class CultivationService
             $maxChi = (int)$user['max_chi'];
 
             $chiGain = $this->calculateChiGain($level);
-            $sectService = new SectService();
-            $sectBonuses = $sectService->getBonusesForUser($userId);
-            $chiGain = max(1, (int)floor($chiGain * (1.0 + $sectBonuses['cultivation_speed'])));
+            $cultivationBonus = 0.0;
+            try {
+                $sectService = new SectService();
+                $sectBonuses = $sectService->getBonusesForUser($userId);
+                $cultivationBonus = (float)($sectBonuses['cultivation_speed'] ?? 0.0);
+            } catch (\Throwable $e) {
+                error_log("CultivationService::cultivate sect bonus fallback: " . $e->getMessage());
+            }
+            $chiGain = max(1, (int)floor($chiGain * (1.0 + $cultivationBonus)));
             $newChi = min(max(0, $currentChi) + $chiGain, max(0, $maxChi));
             $newChi = max(0, $newChi);
             $actualGain = $newChi - max(0, $currentChi);
