@@ -1226,24 +1226,3 @@ SELECT r.id, NULL, NULL
 FROM world_regions r
 WHERE COALESCE(r.can_be_captured, 0) = 1
 ON DUPLICATE KEY UPDATE region_id = VALUES(region_id);
-
--- Heavenly Dao Command System: log every admin command execution
-CREATE TABLE IF NOT EXISTS dao_commands_log (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    admin_user_id INT UNSIGNED NOT NULL,
-    command VARCHAR(50) NOT NULL,
-    target_id INT UNSIGNED NULL DEFAULT NULL,
-    params_json JSON NULL,
-    result_success TINYINT(1) NOT NULL DEFAULT 0,
-    result_message VARCHAR(500) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_dao_commands_admin (admin_user_id, created_at),
-    INDEX idx_dao_commands_command (command, created_at),
-    INDEX idx_dao_commands_created (created_at DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Admin permission levels: observer (view only), executor (run non-destructive commands), overseer (full)
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS admin_level VARCHAR(20) NULL DEFAULT NULL AFTER is_admin;
-UPDATE users SET admin_level = 'overseer' WHERE is_admin = 1 AND (admin_level IS NULL OR admin_level = '');

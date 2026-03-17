@@ -7,7 +7,6 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 $navItems = [
     'heavenly_observatory' => ['label' => 'Heavenly Observatory', 'icon' => '🏛️'],
     'users' => ['label' => 'Cultivator Registry', 'icon' => '👥'],
-    'dao_commands' => ['label' => 'Dao Commands', 'icon' => '⚡'],
     'bug_reports' => ['label' => 'Anomaly Reports', 'icon' => '🔭'],
     'dao_petitions' => ['label' => 'Dao Petitions', 'icon' => '📜'],
     'dao_records' => ['label' => 'Dao Records', 'icon' => '📘'],

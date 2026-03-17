@@ -25,7 +25,6 @@ class User
     private float $rating;
     private string $createdAt;
     private ?string $lastLoginAt;
-    private ?string $adminLevel;
 
     public function __construct(
         ?int $id = null,
@@ -43,8 +42,7 @@ class User
         int $losses = 0,
         float $rating = 1000.0,
         string $createdAt = '',
-        ?string $lastLoginAt = null,
-        ?string $adminLevel = null
+        ?string $lastLoginAt = null
     ) {
         $this->id = $id;
         $this->username = $username;
@@ -62,7 +60,6 @@ class User
         $this->rating = $rating;
         $this->createdAt = $createdAt ?: date('Y-m-d H:i:s');
         $this->lastLoginAt = $lastLoginAt;
-        $this->adminLevel = $adminLevel;
     }
 
     // Getters
@@ -89,12 +86,6 @@ class User
     public function isAdmin(): bool
     {
         return $this->isAdmin;
-    }
-
-    /** Admin permission level: observer, executor, or overseer. Null for non-admins. */
-    public function getAdminLevel(): ?string
-    {
-        return $this->adminLevel;
     }
 
     public function getRealmId(): int
@@ -309,8 +300,7 @@ class User
             losses: (int)($data['losses'] ?? 0),
             rating: (float)($data['rating'] ?? 1000.0),
             createdAt: $data['created_at'] ?? '',
-            lastLoginAt: $data['last_login_at'] ?? null,
-            adminLevel: isset($data['admin_level']) && $data['admin_level'] !== '' ? (string)$data['admin_level'] : null
+            lastLoginAt: $data['last_login_at'] ?? null
         );
     }
 }
