@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $result['user']->getId();
         $_SESSION['username'] = $result['user']->getUsername();
         $_SESSION['is_admin'] = $result['user']->isAdmin();
+        $_SESSION['admin_level'] = $result['user']->isAdmin() ? ($result['user']->getAdminLevel() ?? 'overseer') : null;
         $_SESSION['realm_id'] = $result['user']->getRealmId();
         $_SESSION['level'] = $result['user']->getLevel();
         

@@ -35,21 +35,9 @@ $formatContext = static function ($value): string {
     $json = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     return $json !== false ? $json : (string)$value;
 };
+$pageTitle = 'Dao Records';
+require __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heavenly Dao Records - Cultivation Journey</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-gray-950 via-slate-950 to-indigo-950 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">Heavenly Dao Records</h1>
-            <a href="../pages/game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
-        </div>
 
         <form method="GET" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-800/90 border border-cyan-500/20 rounded-xl p-5">
             <div>
@@ -97,9 +85,7 @@ $formatContext = static function ($value): string {
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-</body>
-</html>
+<?php require __DIR__ . '/includes/footer.php'; ?>
 
 
 

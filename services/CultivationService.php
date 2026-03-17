@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
-require_once __DIR__ . '/SectService.php';
-
 use Game\Config\Database;
 use PDOException;
 
@@ -55,15 +53,7 @@ class CultivationService
             $maxChi = (int)$user['max_chi'];
 
             $chiGain = $this->calculateChiGain($level);
-            $cultivationBonus = 0.0;
-            try {
-                $sectService = new SectService();
-                $sectBonuses = $sectService->getBonusesForUser($userId);
-                $cultivationBonus = (float)($sectBonuses['cultivation_speed'] ?? 0.0);
-            } catch (\Throwable $e) {
-                error_log("CultivationService::cultivate sect bonus fallback: " . $e->getMessage());
-            }
-            $chiGain = max(1, (int)floor($chiGain * (1.0 + $cultivationBonus)));
+            $chiGain = max(1, $chiGain);
             $newChi = min(max(0, $currentChi) + $chiGain, max(0, $maxChi));
             $newChi = max(0, $newChi);
             $actualGain = $newChi - max(0, $currentChi);

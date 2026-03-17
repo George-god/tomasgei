@@ -191,6 +191,14 @@ class AuthService
 
             $user = User::fromArray($userData);
 
+            if (!empty($userData['is_banned'])) {
+                return [
+                    'success' => false,
+                    'user' => null,
+                    'error' => 'The Heavenly Dao has banished you from the realm. Contact the celestial overseers if you believe this is in error.'
+                ];
+            }
+
             // Verify password
             if (!$user->verifyPassword($password)) {
                 return [

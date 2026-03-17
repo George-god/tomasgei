@@ -27,9 +27,10 @@ class DungeonService
 
             $stmt = $db->query("
                 SELECT d.id, d.name, d.region_id, d.difficulty, d.min_realm_id, d.boss_name,
-                       r.name AS region_name
+                       r.name AS region_name, rl.name AS min_realm_name
                 FROM dungeons d
                 JOIN world_regions r ON r.id = d.region_id
+                LEFT JOIN realms rl ON rl.id = d.min_realm_id
                 ORDER BY d.min_realm_id ASC, d.difficulty ASC, d.id ASC
             ");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -56,9 +57,10 @@ class DungeonService
         try {
             $db = Database::getConnection();
             $stmt = $db->prepare("
-                SELECT d.*, r.name AS region_name, r.description AS region_description
+                SELECT d.*, r.name AS region_name, r.description AS region_description, rl.name AS min_realm_name
                 FROM dungeons d
                 JOIN world_regions r ON r.id = d.region_id
+                LEFT JOIN realms rl ON rl.id = d.min_realm_id
                 WHERE d.id = ?
                 LIMIT 1
             ");

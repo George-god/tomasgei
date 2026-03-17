@@ -57,6 +57,19 @@ final class SessionHelper
             header('Location: ' . $loginUrl);
             exit;
         }
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare('SELECT is_banned FROM users WHERE id = ? LIMIT 1');
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            if ($row && !empty($row['is_banned'])) {
+                session_destroy();
+                header('Location: ' . $loginUrl . '?banned=1');
+                exit;
+            }
+        } catch (\Throwable $e) {
+            // If column doesn't exist yet, ignore
+        }
         return $id;
     }
 
@@ -88,6 +101,59 @@ final class SessionHelper
     {
         $userId = self::requireLoggedIn($loginUrl);
         if (!self::isAdmin()) {
+            header('Location: ' . $redirectUrl);
+            exit;
+        }
+        return $userId;
+    }
+
+    /**
+     * Get current admin level: observer, executor, or overseer. Returns null if not admin.
+     */
+    public static function getAdminLevel(): ?string
+    {
+        if (!self::isAdmin()) {
+            return null;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['admin_level']) && $_SESSION['admin_level'] !== '') {
+            return (string)$_SESSION['admin_level'];
+        }
+        try {
+            $db = Database::getConnection();
+            $userId = self::getUserId();
+            if ($userId === null) {
+                return null;
+            }
+            $stmt = $db->prepare('SELECT admin_level FROM users WHERE id = ? AND is_admin = 1 LIMIT 1');
+            $stmt->execute([$userId]);
+            $level = $stmt->fetchColumn();
+            $level = ($level !== false && $level !== null && $level !== '') ? (string)$level : 'overseer';
+            $_SESSION['admin_level'] = $level;
+            return $level;
+        } catch (\Throwable $e) {
+            return 'overseer';
+        }
+    }
+
+    /**
+     * Require admin with at least the given level (observer < executor < overseer).
+     *
+     * @param string $minLevel observer, executor, or overseer
+     * @param string $redirectUrl Where to redirect if insufficient
+     * @param string $loginUrl Login page URL
+     * @return int Current user ID
+     */
+    public static function requireAdminLevel(string $minLevel, string $redirectUrl = 'game.php', string $loginUrl = 'login.php'): int
+    {
+        $userId = self::requireAdmin($redirectUrl, $loginUrl);
+        $rank = ['observer' => 1, 'executor' => 2, 'overseer' => 3];
+        $current = self::getAdminLevel() ?? 'observer';
+        $requiredRank = $rank[$minLevel] ?? 0;
+        $currentRank = $rank[$current] ?? 0;
+        if ($currentRank < $requiredRank) {
             header('Location: ' . $redirectUrl);
             exit;
         }

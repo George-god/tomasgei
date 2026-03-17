@@ -54,7 +54,7 @@ $highlightId = (int)($_GET['highlight'] ?? 0);
                         <?php endif; ?>
                     </div>
                     <p class="text-sm text-gray-400 mb-2">Boss: <?php echo htmlspecialchars($dungeon['boss_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
-                    <p class="text-sm <?php echo $locked ? 'text-amber-300' : 'text-gray-500'; ?> mb-4">Requires Realm ID <?php echo (int)($dungeon['min_realm_id'] ?? 1); ?></p>
+                    <p class="text-sm <?php echo $locked ? 'text-amber-300' : 'text-gray-500'; ?> mb-4">Requires <?php echo htmlspecialchars($dungeon['min_realm_name'] ?? 'Qi Refining', ENT_QUOTES, 'UTF-8'); ?></p>
                     <?php if ($activeRun): ?>
                         <p class="text-sm text-cyan-300 mb-4">Progress: Stage <?php echo (int)$activeRun['progress'] + 1; ?> / 3</p>
                     <?php endif; ?>

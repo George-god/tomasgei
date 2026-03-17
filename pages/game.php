@@ -471,123 +471,164 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
             </div>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            <a href="leaderboard.php" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🏆</div>
-                <div class="text-sm font-semibold text-cyan-300">Leaderboard</div>
-            </a>
-            <?php if ($canPvP): ?>
-            <a href="battles.php" class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">⚔️</div>
-                <div class="text-sm font-semibold text-red-300">Battles</div>
-            </a>
-            <?php else: ?>
-            <span class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-4 text-center block opacity-60 cursor-not-allowed">
-                <div class="text-2xl mb-2">⚔️</div>
-                <div class="text-sm font-semibold text-red-300">Battles</div>
-                <div class="text-xs text-gray-400 mt-1">No PvP stamina</div>
-            </span>
-            <?php endif; ?>
-            <a href="npc_arena.php" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">👹</div>
-                <div class="text-sm font-semibold text-amber-300">NPC Arena</div>
-            </a>
-            <a href="inventory.php" class="bg-gray-800/90 backdrop-blur-lg border border-emerald-500/30 rounded-xl p-4 hover:border-emerald-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🎒</div>
-                <div class="text-sm font-semibold text-emerald-300">Inventory</div>
-            </a>
-            <a href="marketplace.php" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🏪</div>
-                <div class="text-sm font-semibold text-amber-300">Marketplace</div>
-            </a>
-            <a href="alchemy.php" class="bg-gray-800/90 backdrop-blur-lg border border-emerald-500/30 rounded-xl p-4 hover:border-emerald-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">⚗️</div>
-                <div class="text-sm font-semibold text-emerald-300">Alchemy</div>
-            </a>
-            <a href="blacksmith.php" class="bg-gray-800/90 backdrop-blur-lg border border-orange-500/30 rounded-xl p-4 hover:border-orange-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🔨</div>
-                <div class="text-sm font-semibold text-orange-300">Blacksmith</div>
-            </a>
-            <a href="herbalist.php" class="bg-gray-800/90 backdrop-blur-lg border border-green-500/30 rounded-xl p-4 hover:border-green-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🌿</div>
-                <div class="text-sm font-semibold text-green-300">Herb Plot</div>
-            </a>
-            <a href="runes.php" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">✒️</div>
-                <div class="text-sm font-semibold text-purple-300">Runes</div>
-            </a>
-            <a href="professions.php" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">📜</div>
-                <div class="text-sm font-semibold text-amber-300">Professions</div>
-            </a>
-            <a href="sect.php" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🏛️</div>
-                <div class="text-sm font-semibold text-amber-300">Sect</div>
-            </a>
-            <a href="tribulation.php" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">⛈️</div>
-                <div class="text-sm font-semibold text-purple-300">Tribulations</div>
-            </a>
-            <a href="dao_paths.php" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">☯️</div>
-                <div class="text-sm font-semibold text-violet-300">Dao Paths</div>
-            </a>
-            <a href="cultivation_manuals.php" class="bg-gray-800/90 backdrop-blur-lg border border-fuchsia-500/30 rounded-xl p-4 hover:border-fuchsia-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">📚</div>
-                <div class="text-sm font-semibold text-fuchsia-300">Cultivation Manuals</div>
-            </a>
-            <a href="report_anomaly.php" class="bg-gray-800/90 backdrop-blur-lg border border-pink-500/30 rounded-xl p-4 hover:border-pink-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🌌</div>
-                <div class="text-sm font-semibold text-pink-300">Report Anomaly</div>
-            </a>
-            <a href="dao_petition.php" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🕯️</div>
-                <div class="text-sm font-semibold text-violet-300">Dao Petition</div>
-            </a>
-            <a href="fate_records.php" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">📖</div>
-                <div class="text-sm font-semibold text-amber-300">Fate Records</div>
-            </a>
-            <?php if (!empty($_SESSION['is_admin'])): ?>
-            <a href="../admin/dao_observatory.php" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🔭</div>
-                <div class="text-sm font-semibold text-cyan-300">Dao Observatory</div>
-            </a>
-            <a href="../admin/dao_petitions.php" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">📜</div>
-                <div class="text-sm font-semibold text-violet-300">Dao Petitions</div>
-            </a>
-            <a href="../admin/dao_records.php" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">📘</div>
-                <div class="text-sm font-semibold text-cyan-300">Dao Records</div>
-            </a>
-            <?php endif; ?>
-            <a href="equipment.php" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🛡️</div>
-                <div class="text-sm font-semibold text-violet-300">Equipment</div>
-            </a>
-            <a href="world_map.php" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🧭</div>
-                <div class="text-sm font-semibold text-cyan-300">World Map</div>
-            </a>
-            <a href="dungeons.php" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🏯</div>
-                <div class="text-sm font-semibold text-purple-300">Dungeons</div>
-            </a>
-            <a href="territories.php" class="bg-gray-800/90 backdrop-blur-lg border border-green-500/30 rounded-xl p-4 hover:border-green-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">🗺️</div>
-                <div class="text-sm font-semibold text-green-300">Territories & Wars</div>
-            </a>
-            <a href="hall_of_legends.php" class="bg-gray-800/90 backdrop-blur-lg border border-yellow-500/30 rounded-xl p-4 hover:border-yellow-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">⭐</div>
-                <div class="text-sm font-semibold text-yellow-300">Hall of Legends</div>
-            </a>
-            <a href="world_boss.php" class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all text-center">
-                <div class="text-2xl mb-2">👹</div>
-                <div class="text-sm font-semibold text-red-300">World Boss</div>
-            </a>
-        </div>
+        <!-- Quick access: main activities -->
+        <section class="mb-8">
+            <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Quick access</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <a href="leaderboard.php" title="View rankings and challenge others" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-5 hover:border-cyan-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🏆</div>
+                    <div class="font-semibold text-cyan-300">Leaderboard</div>
+                    <div class="text-xs text-gray-500 mt-1">Climb the ranks</div>
+                </a>
+                <?php if ($canPvP): ?>
+                <a href="battles.php" title="Challenge other cultivators to PvP" class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-5 hover:border-red-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">⚔️</div>
+                    <div class="font-semibold text-red-300">Battles</div>
+                    <div class="text-xs text-gray-500 mt-1">Fight players</div>
+                </a>
+                <?php else: ?>
+                <span class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-5 text-center block opacity-60 cursor-not-allowed">
+                    <div class="text-3xl mb-2">⚔️</div>
+                    <div class="font-semibold text-red-300">Battles</div>
+                    <div class="text-xs text-gray-400 mt-1">No PvP stamina</div>
+                </span>
+                <?php endif; ?>
+                <a href="inventory.php" title="View and manage your items" class="bg-gray-800/90 backdrop-blur-lg border border-emerald-500/30 rounded-xl p-5 hover:border-emerald-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🎒</div>
+                    <div class="font-semibold text-emerald-300">Inventory</div>
+                    <div class="text-xs text-gray-500 mt-1">Items & gear</div>
+                </a>
+                <a href="world_map.php" title="Explore regions and travel" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-5 hover:border-cyan-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🧭</div>
+                    <div class="font-semibold text-cyan-300">World Map</div>
+                    <div class="text-xs text-gray-500 mt-1">Explore regions</div>
+                </a>
+                <a href="sect.php" title="Join or manage your sect" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-5 hover:border-amber-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🏛️</div>
+                    <div class="font-semibold text-amber-300">Sect</div>
+                    <div class="text-xs text-gray-500 mt-1">Guild & bonuses</div>
+                </a>
+                <a href="world_boss.php" title="Fight the world boss for rewards" class="bg-gray-800/90 backdrop-blur-lg border border-red-500/30 rounded-xl p-5 hover:border-red-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">👹</div>
+                    <div class="font-semibold text-red-300">World Boss</div>
+                    <div class="text-xs text-gray-500 mt-1">Co-op challenge</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Combat & challenges -->
+        <section class="mb-8">
+            <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Combat & challenges</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="npc_arena.php" title="Fight NPCs for chi and loot" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">👹</div>
+                    <div class="text-sm font-semibold text-amber-300">NPC Arena</div>
+                </a>
+                <a href="dungeons.php" title="Clear dungeons for rewards" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🏯</div>
+                    <div class="text-sm font-semibold text-purple-300">Dungeons</div>
+                </a>
+                <a href="tribulation.php" title="View tribulation history" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">⛈️</div>
+                    <div class="text-sm font-semibold text-purple-300">Tribulations</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Crafting & items -->
+        <section class="mb-8">
+            <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Crafting & items</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a href="equipment.php" title="Equip weapons and armor" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🛡️</div>
+                    <div class="text-sm font-semibold text-violet-300">Equipment</div>
+                </a>
+                <a href="marketplace.php" title="Buy and sell items" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🏪</div>
+                    <div class="text-sm font-semibold text-amber-300">Marketplace</div>
+                </a>
+                <a href="alchemy.php" title="Craft pills" class="bg-gray-800/90 backdrop-blur-lg border border-emerald-500/30 rounded-xl p-4 hover:border-emerald-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">⚗️</div>
+                    <div class="text-sm font-semibold text-emerald-300">Alchemy</div>
+                </a>
+                <a href="blacksmith.php" title="Craft weapons and armor" class="bg-gray-800/90 backdrop-blur-lg border border-orange-500/30 rounded-xl p-4 hover:border-orange-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🔨</div>
+                    <div class="text-sm font-semibold text-orange-300">Blacksmith</div>
+                </a>
+                <a href="herbalist.php" title="Grow herbs" class="bg-gray-800/90 backdrop-blur-lg border border-green-500/30 rounded-xl p-4 hover:border-green-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🌿</div>
+                    <div class="text-sm font-semibold text-green-300">Herb Plot</div>
+                </a>
+                <a href="runes.php" title="Craft and use runes" class="bg-gray-800/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">✒️</div>
+                    <div class="text-sm font-semibold text-purple-300">Runes</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Progression & path -->
+        <section class="mb-8">
+            <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Progression & path</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a href="dao_paths.php" title="Choose or view your Dao path" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">☯️</div>
+                    <div class="text-sm font-semibold text-violet-300">Dao Paths</div>
+                </a>
+                <a href="cultivation_manuals.php" title="Cultivation manuals and bonuses" class="bg-gray-800/90 backdrop-blur-lg border border-fuchsia-500/30 rounded-xl p-4 hover:border-fuchsia-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">📚</div>
+                    <div class="text-sm font-semibold text-fuchsia-300">Cultivation Manuals</div>
+                </a>
+                <a href="professions.php" title="Level up professions" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">📜</div>
+                    <div class="text-sm font-semibold text-amber-300">Professions</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- World & sect -->
+        <section class="mb-8">
+            <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">World & sect</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a href="territories.php" title="Territory control and sect wars" class="bg-gray-800/90 backdrop-blur-lg border border-green-500/30 rounded-xl p-4 hover:border-green-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">🗺️</div>
+                    <div class="text-sm font-semibold text-green-300">Territories & Wars</div>
+                </a>
+                <a href="hall_of_legends.php" title="Era rankings and history" class="bg-gray-800/90 backdrop-blur-lg border border-yellow-500/30 rounded-xl p-4 hover:border-yellow-500/50 transition-all text-center">
+                    <div class="text-2xl mb-2">⭐</div>
+                    <div class="text-sm font-semibold text-yellow-300">Hall of Legends</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- More: collapsible -->
+        <section class="mb-8">
+            <details class="group">
+                <summary class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3 cursor-pointer list-none flex items-center gap-2 hover:text-gray-300 transition-colors">
+                    <span class="transition-transform group-open:rotate-90">▶</span>
+                    More pages
+                </summary>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pl-4 border-l-2 border-gray-700">
+                    <a href="report_anomaly.php" title="Report a bug or issue" class="bg-gray-800/90 backdrop-blur-lg border border-pink-500/30 rounded-xl p-4 hover:border-pink-500/50 transition-all text-center">
+                        <div class="text-2xl mb-2">🌌</div>
+                        <div class="text-sm font-semibold text-pink-300">Report Anomaly</div>
+                    </a>
+                    <a href="dao_petition.php" title="Submit a petition to the Dao" class="bg-gray-800/90 backdrop-blur-lg border border-violet-500/30 rounded-xl p-4 hover:border-violet-500/50 transition-all text-center">
+                        <div class="text-2xl mb-2">🕯️</div>
+                        <div class="text-sm font-semibold text-violet-300">Dao Petition</div>
+                    </a>
+                    <a href="fate_records.php" title="View fate and event records" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/50 transition-all text-center">
+                        <div class="text-2xl mb-2">📖</div>
+                        <div class="text-sm font-semibold text-amber-300">Fate Records</div>
+                    </a>
+                    <?php if (!empty($_SESSION['is_admin'])): ?>
+                    <a href="../admin/heavenly_observatory.php" title="Heavenly Dao administration" class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500/50 transition-all text-center">
+                        <div class="text-2xl mb-2">🏛️</div>
+                        <div class="text-sm font-semibold text-cyan-300">Heavenly Dao Admin</div>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </details>
+        </section>
     </div>
     <script src="../cultivation.js"></script>
 </body>

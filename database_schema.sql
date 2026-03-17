@@ -364,6 +364,19 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_type (type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- User warnings (admin moderation)
+CREATE TABLE IF NOT EXISTS user_warnings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    issued_by INT UNSIGNED NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Rankings table (ELO-based ranking system, can support seasons)
 CREATE TABLE IF NOT EXISTS rankings (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -689,6 +702,10 @@ SET multiplier = stat_bonus_multiplier
 WHERE multiplier IS NULL OR multiplier = 1.000;
 
 ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_banned TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin,
+    ADD COLUMN IF NOT EXISTS ban_reason TEXT NULL AFTER is_banned,
+    ADD COLUMN IF NOT EXISTS banned_at DATETIME NULL AFTER ban_reason,
+    ADD COLUMN IF NOT EXISTS banned_by INT UNSIGNED NULL AFTER banned_at,
     ADD COLUMN IF NOT EXISTS breakthrough_attempts INT UNSIGNED NOT NULL DEFAULT 0 AFTER last_breakthrough_at,
     ADD COLUMN IF NOT EXISTS active_scroll_type VARCHAR(30) NULL DEFAULT NULL AFTER breakthrough_attempts,
     ADD COLUMN IF NOT EXISTS gold BIGINT NOT NULL DEFAULT 0 AFTER active_scroll_type,
@@ -1209,3 +1226,24 @@ SELECT r.id, NULL, NULL
 FROM world_regions r
 WHERE COALESCE(r.can_be_captured, 0) = 1
 ON DUPLICATE KEY UPDATE region_id = VALUES(region_id);
+
+-- Heavenly Dao Command System: log every admin command execution
+CREATE TABLE IF NOT EXISTS dao_commands_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT UNSIGNED NOT NULL,
+    command VARCHAR(50) NOT NULL,
+    target_id INT UNSIGNED NULL DEFAULT NULL,
+    params_json JSON NULL,
+    result_success TINYINT(1) NOT NULL DEFAULT 0,
+    result_message VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_dao_commands_admin (admin_user_id, created_at),
+    INDEX idx_dao_commands_command (command, created_at),
+    INDEX idx_dao_commands_created (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin permission levels: observer (view only), executor (run non-destructive commands), overseer (full)
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS admin_level VARCHAR(20) NULL DEFAULT NULL AFTER is_admin;
+UPDATE users SET admin_level = 'overseer' WHERE is_admin = 1 AND (admin_level IS NULL OR admin_level = '');

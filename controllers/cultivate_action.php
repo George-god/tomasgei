@@ -1,6 +1,33 @@
 <?php
 declare(strict_types=1);
 
+ob_start();
+// Ensure all errors return JSON so the frontend can display them
+set_exception_handler(function (\Throwable $e) {
+    if (ob_get_level()) { ob_end_clean(); }
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error: ' . $e->getMessage(),
+        'debug' => ['file' => basename($e->getFile()), 'line' => $e->getLine()]
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (ob_get_level()) ob_end_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Fatal: ' . $err['message'],
+            'debug' => ['file' => basename($err['file']), 'line' => $err['line']]
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+});
+
 require_once dirname(__DIR__) . '/core/bootstrap.php';
 require_once dirname(__DIR__) . '/core/Validator.php';
 require_once dirname(__DIR__) . '/core/ApiResponse.php';

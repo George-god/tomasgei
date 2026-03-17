@@ -85,6 +85,7 @@ $locked = ($service->getDungeonsForUser($userId)['user_realm_id'] ?? 1) < (int)$
             <p class="text-gray-300 mb-2">Region: <span class="text-white"><?php echo htmlspecialchars($dungeon['region_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></p>
             <p class="text-gray-300 mb-2">Difficulty: <span class="text-white"><?php echo (int)($dungeon['difficulty'] ?? 1); ?></span></p>
             <p class="text-gray-300 mb-2">Boss: <span class="text-white"><?php echo htmlspecialchars($dungeon['boss_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></p>
+            <p class="text-gray-300 mb-2">Requires: <span class="text-white"><?php echo htmlspecialchars($dungeon['min_realm_name'] ?? 'Qi Refining', ENT_QUOTES, 'UTF-8'); ?></span></p>
             <p class="text-sm text-gray-500">Daily runs remaining: <?php echo $runsRemaining; ?> / 3</p>
         </div>
 
@@ -130,7 +131,7 @@ $locked = ($service->getDungeonsForUser($userId)['user_realm_id'] ?? 1) < (int)$
 
         <div class="bg-gray-800/90 backdrop-blur border border-gray-700 rounded-xl p-6">
             <?php if ($locked): ?>
-                <p class="text-amber-300">You do not meet the realm requirement for this dungeon.</p>
+                <p class="text-amber-300">Requires <?php echo htmlspecialchars($dungeon['min_realm_name'] ?? 'Qi Refining', ENT_QUOTES, 'UTF-8'); ?> to enter.</p>
             <?php elseif ($activeRun): ?>
                 <h2 class="text-xl font-semibold text-purple-300 mb-2"><?php echo htmlspecialchars($stagePreview['label'] ?? 'Next Stage', ENT_QUOTES, 'UTF-8'); ?></h2>
                 <p class="text-sm text-gray-400 mb-4">Enemy: <?php echo htmlspecialchars($stagePreview['enemy_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>

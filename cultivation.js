@@ -71,8 +71,9 @@
         setButtonDisabled(true, '⏳ Cultivating…');
         showStatus('');
 
-        fetch('../controllers/cultivate_action.php', {
+        fetch('cultivate_action.php', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
             body: 'action=cultivate'
         })
@@ -81,8 +82,9 @@
                     try {
                         return { data: JSON.parse(text), ok: res.ok, status: res.status };
                     } catch (e) {
+                        console.error('Cultivate: invalid JSON. Status:', res.status, 'URL:', res.url, 'Response:', text ? text.substring(0, 500) : '(empty)');
                         var snippet = text ? text.substring(0, 300).replace(/\s+/g, ' ') : '(empty)';
-                        throw new Error('Server returned invalid JSON. Check PHP error log. Response: ' + snippet);
+                        throw new Error('Server returned invalid JSON (status ' + res.status + '). Response: ' + snippet);
                     }
                 });
             })
@@ -106,7 +108,12 @@
                 }
             })
             .catch(function (err) {
-                showStatus(err && err.message ? err.message : 'Request failed. Try again.', true);
+                console.error('Cultivate error:', err);
+                var msg = (err && err.message) ? err.message : 'Request failed. Try again.';
+                if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') >= 0) {
+                    msg = 'Network error. Check that the server is running and the URL is correct.';
+                }
+                showStatus(msg, true);
                 setButtonDisabled(false);
             });
     });

@@ -71,7 +71,7 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
                     <p class="text-sm text-gray-500 mb-1">Encounters: <?php echo htmlspecialchars($region['exploration_encounters'] ?? 'Unknown', ENT_QUOTES, 'UTF-8'); ?></p>
                     <p class="text-sm text-purple-300 mb-4">Hidden dungeon chance: <?php echo number_format((float)($region['hidden_dungeon_chance'] ?? 1.0), 2); ?>%</p>
                     <p class="text-sm <?php echo $locked ? 'text-amber-300' : 'text-gray-500'; ?> mb-4">
-                        Requires Realm ID <?php echo (int)($region['min_realm_id'] ?? 1); ?>
+                        Requires <?php echo htmlspecialchars($region['min_realm_name'] ?? 'Qi Refining', ENT_QUOTES, 'UTF-8'); ?>
                     </p>
                     <button
                         type="button"
@@ -168,7 +168,7 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
                 html += '<p class="text-gray-300 mb-2">' + data.dungeon.name + ' | Difficulty ' + data.dungeon.difficulty + '</p>';
                 html += '<p class="text-gray-400 mb-3">Boss: ' + data.dungeon.boss_name + '</p>';
                 if (data.dungeon.locked) {
-                    html += '<p class="text-amber-300 text-sm">Requires Realm ID ' + data.dungeon.min_realm_id + ' to enter.</p>';
+                    html += '<p class="text-amber-300 text-sm">Requires ' + (data.dungeon.min_realm_name || 'Qi Refining') + ' to enter.</p>';
                 } else {
                     html += '<a href="dungeon.php?dungeon_id=' + data.dungeon.id + '" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold">Enter Dungeon</a>';
                 }

@@ -34,28 +34,9 @@ $statuses = $service->getStatusOptions();
 $msg = $_GET['msg'] ?? null;
 $err = $_GET['err'] ?? null;
 $formatStatus = static fn(string $status): string => ucwords(str_replace('_', ' ', $status));
+$pageTitle = 'Dao Petitions';
+require __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heavenly Dao Petitions - Cultivation Journey</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-gray-950 via-indigo-950 to-slate-950 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">Heavenly Dao Petition Review</h1>
-            <a href="../pages/game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
-        </div>
-
-        <?php if ($msg): ?>
-            <div class="mb-4 p-4 bg-green-900/20 border border-green-500/40 rounded-xl text-green-200"><?php echo htmlspecialchars($msg, ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php endif; ?>
-        <?php if ($err): ?>
-            <div class="mb-4 p-4 bg-red-900/20 border border-red-500/40 rounded-xl text-red-200"><?php echo htmlspecialchars($err, ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php endif; ?>
 
         <div class="flex flex-wrap gap-2 mb-6">
             <a href="dao_petitions.php" class="px-3 py-2 rounded-lg border <?php echo $statusFilter === '' ? 'border-cyan-500/50 text-cyan-300 bg-cyan-500/10' : 'border-gray-700 text-gray-300 bg-gray-900/60'; ?>">All</a>
@@ -126,9 +107,7 @@ $formatStatus = static fn(string $status): string => ucwords(str_replace('_', ' 
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-</body>
-</html>
+<?php require __DIR__ . '/includes/footer.php'; ?>
 
 
 

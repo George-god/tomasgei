@@ -461,7 +461,7 @@ class WorldBossService
             $stmt = $db->prepare("
                 SELECT t.id, t.name, t.region_id, t.max_hp, t.duration_minutes, t.legendary_item_template_id,
                        r.name AS region_name
-                FROM world_boss_templates
+                FROM world_boss_templates t
                 LEFT JOIN world_regions r ON r.id = t.region_id
                 WHERE t.name = ?
                 LIMIT 1

@@ -37,9 +37,11 @@ class ExplorationService
             $location = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
             $stmt = $db->query("
-                SELECT id, name, difficulty, description, min_realm_id, resource_type, exploration_encounters, hidden_dungeon_chance
-                FROM world_regions
-                ORDER BY min_realm_id ASC, difficulty ASC, id ASC
+                SELECT wr.id, wr.name, wr.difficulty, wr.description, wr.min_realm_id, wr.resource_type, wr.exploration_encounters, wr.hidden_dungeon_chance,
+                       r.name AS min_realm_name
+                FROM world_regions wr
+                LEFT JOIN realms r ON r.id = wr.min_realm_id
+                ORDER BY wr.min_realm_id ASC, wr.difficulty ASC, wr.id ASC
             ");
             $regions = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $cooldownRemaining = $this->getCooldownRemaining($userId);
@@ -158,6 +160,7 @@ class ExplorationService
                     'boss_name' => (string)$dungeon['boss_name'],
                     'locked' => $locked,
                     'min_realm_id' => (int)$dungeon['min_realm_id'],
+                    'min_realm_name' => (string)($dungeon['min_realm_name'] ?? 'Qi Refining'),
                 ],
             ],
         ];
@@ -528,10 +531,11 @@ class ExplorationService
         try {
             $db = Database::getConnection();
             $stmt = $db->prepare("
-                SELECT id, name, difficulty, min_realm_id, boss_name
-                FROM dungeons
-                WHERE region_id = ?
-                ORDER BY difficulty ASC, id ASC
+                SELECT d.id, d.name, d.difficulty, d.min_realm_id, d.boss_name, r.name AS min_realm_name
+                FROM dungeons d
+                LEFT JOIN realms r ON r.id = d.min_realm_id
+                WHERE d.region_id = ?
+                ORDER BY d.difficulty ASC, d.id ASC
                 LIMIT 1
             ");
             $stmt->execute([$regionId]);
