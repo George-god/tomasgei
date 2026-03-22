@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/AllianceService.php';
+require_once __DIR__ . '/DiplomacyService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/SectService.php';
 
@@ -58,11 +60,23 @@ class SectWarService
             ");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+            $alliedOwnerIds = [];
+            $napOwnerIds = [];
+            if ($mySectId !== null) {
+                $alliedOwnerIds = array_fill_keys((new AllianceService())->getAlliedSectIds($mySectId), true);
+                $napOwnerIds = array_fill_keys((new DiplomacyService())->getActiveNapPartnerSectIds($mySectId), true);
+            }
+
             foreach ($rows as &$row) {
-                $row['is_owned_by_my_sect'] = $mySectId !== null && (int)($row['owner_sect_id'] ?? 0) === $mySectId;
+                $ownerId = (int)($row['owner_sect_id'] ?? 0);
+                $row['is_owned_by_my_sect'] = $mySectId !== null && $ownerId === $mySectId;
+                $row['owner_is_allied'] = $mySectId !== null && $ownerId > 0 && isset($alliedOwnerIds[$ownerId]);
+                $row['owner_has_nap'] = $mySectId !== null && $ownerId > 0 && isset($napOwnerIds[$ownerId]);
                 $row['my_sect_can_challenge'] = $mySectId !== null
                     && (int)($row['active_war_id'] ?? 0) === 0
-                    && (int)($row['owner_sect_id'] ?? 0) !== $mySectId;
+                    && $ownerId !== $mySectId
+                    && !($ownerId > 0 && isset($alliedOwnerIds[$ownerId]))
+                    && !($ownerId > 0 && isset($napOwnerIds[$ownerId]));
                 $row['crystal_percent'] = (int)$this->calculatePercent(
                     (int)($row['crystal_current_hp'] ?? 0),
                     (int)($row['crystal_max_hp'] ?? 0)
@@ -145,6 +159,19 @@ class SectWarService
                 return ['success' => false, 'message' => 'Your sect already controls this territory.'];
             }
 
+            $defenderSectId = (int)($territory['owner_sect_id'] ?? 0) ?: null;
+            if ($defenderSectId !== null && $defenderSectId > 0) {
+                $allianceSvc = new AllianceService();
+                if ($allianceSvc->areSectsAllied($attackerSectId, $defenderSectId)) {
+                    $db->rollBack();
+                    return ['success' => false, 'message' => 'You cannot declare war on territory held by an allied sect.'];
+                }
+                if ((new DiplomacyService())->hasActiveNap($attackerSectId, $defenderSectId)) {
+                    $db->rollBack();
+                    return ['success' => false, 'message' => 'You cannot declare war on territory held under a non-aggression pact.'];
+                }
+            }
+
             if ($this->hasActiveWarForTerritory($db, (int)$territory['id'])) {
                 $db->rollBack();
                 return ['success' => false, 'message' => 'This territory is already under war.'];
@@ -155,7 +182,6 @@ class SectWarService
                 return ['success' => false, 'message' => 'Your sect is already involved in another active war.'];
             }
 
-            $defenderSectId = (int)($territory['owner_sect_id'] ?? 0) ?: null;
             if ($defenderSectId !== null && $this->hasActiveWarForSect($db, $defenderSectId)) {
                 $db->rollBack();
                 return ['success' => false, 'message' => 'The defending sect is already involved in another active war.'];
@@ -270,6 +296,14 @@ class SectWarService
             $attack = (int)($stats['final']['attack'] ?? 1);
             $defense = (int)($stats['final']['defense'] ?? 1);
             $difficulty = (int)$war['difficulty'];
+            $allianceDamageMult = (new AllianceService())->getWarDamageMultiplierForSect($sectId);
+            $defWarSectId = (int)($war['defender_sect_id'] ?? 0);
+            $atkWarSectId = (int)$war['attacker_sect_id'];
+            $enemySectId = $isAttacker ? $defWarSectId : $atkWarSectId;
+            $rivalMult = ($defWarSectId > 0 && $enemySectId > 0)
+                ? (new DiplomacyService())->getRivalDamageMultiplier($sectId, $enemySectId)
+                : 1.0;
+            $warDamageMult = $allianceDamageMult * $rivalMult;
 
             $crystalCurrentHp = (int)$war['crystal_current_hp'];
             $kills = $this->rollKills($attack, $defense, $difficulty, $isAttacker);
@@ -280,7 +314,7 @@ class SectWarService
 
             if ($isAttacker) {
                 $variance = $this->randomFloat(self::ATTACKER_DAMAGE_VARIANCE_MIN, self::ATTACKER_DAMAGE_VARIANCE_MAX);
-                $damage = max(1, (int)round($attack * $variance));
+                $damage = max(1, (int)round($attack * $variance * $warDamageMult));
                 $contributionDamage = min($damage, $crystalCurrentHp);
                 $newCrystalHp = max(0, $crystalCurrentHp - $contributionDamage);
                 $isWarEnded = $newCrystalHp <= 0;
@@ -291,7 +325,7 @@ class SectWarService
                 $db->prepare("UPDATE sect_wars SET crystal_current_hp = ? WHERE id = ?")->execute([$newCrystalHp, $warId]);
             } else {
                 $variance = $this->randomFloat(self::DEFENDER_DAMAGE_VARIANCE_MIN, self::DEFENDER_DAMAGE_VARIANCE_MAX);
-                $contributionDamage = max(1, (int)round((($attack * 0.65) + ($defense * 0.35)) * $variance));
+                $contributionDamage = max(1, (int)round((($attack * 0.65) + ($defense * 0.35)) * $variance * $warDamageMult));
                 $message = 'You repelled the assault for ' . number_format($contributionDamage) . ' battle damage.';
                 if ($kills > 0) {
                     $message .= ' Repelled ' . $kills . ' invading cultivators.';

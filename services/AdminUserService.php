@@ -63,7 +63,7 @@ class AdminUserService
             $stmt = $db->prepare("
                 SELECT w.*, a.username AS admin_username
                 FROM user_warnings w
-                LEFT JOIN users a ON a.id = w.admin_user_id
+                LEFT JOIN users a ON a.id = COALESCE(w.admin_user_id, w.issued_by)
                 WHERE w.user_id = ?
                 ORDER BY w.created_at DESC
                 LIMIT 20
@@ -99,8 +99,16 @@ class AdminUserService
                 return ['success' => false, 'message' => 'The Heavenly Dao does not warn fellow overseers.'];
             }
 
-            $stmt = $db->prepare('INSERT INTO user_warnings (user_id, message, admin_user_id) VALUES (?, ?, ?)');
-            $stmt->execute([$targetUserId, $message, $adminUserId]);
+            // Support both schema variants:
+            // - (user_id, message, admin_user_id) [current admin panel code]
+            // - (user_id, reason, issued_by)       [older schema]
+            try {
+                $stmt = $db->prepare('INSERT INTO user_warnings (user_id, message, admin_user_id) VALUES (?, ?, ?)');
+                $stmt->execute([$targetUserId, $message, $adminUserId]);
+            } catch (PDOException $e) {
+                $stmt = $db->prepare('INSERT INTO user_warnings (user_id, reason, issued_by) VALUES (?, ?, ?)');
+                $stmt->execute([$targetUserId, $message, $adminUserId]);
+            }
 
             $notificationService = new NotificationService();
             $notificationService->createNotification(

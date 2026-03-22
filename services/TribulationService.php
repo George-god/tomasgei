@@ -5,6 +5,7 @@ namespace Game\Service;
 
 require_once __DIR__ . '/NotificationService.php';
 require_once __DIR__ . '/StatCalculator.php';
+require_once __DIR__ . '/TitleService.php';
 require_once __DIR__ . '/DaoRecord.php';
 
 use Game\Config\Database;
@@ -449,7 +450,7 @@ class TribulationService
         $db->prepare("
             UPDATE users
             SET chi = ?, breakthrough_attempts = ?, active_scroll_type = NULL
-            WHERE u.id = ?
+            WHERE id = ?
         ")->execute([$endChi, $attemptsUsed + 1, $userId]);
     }
 
@@ -487,7 +488,7 @@ class TribulationService
                    d.path_key AS dao_path_key, d.alignment AS dao_alignment, d.favored_tribulation
             FROM users u
             LEFT JOIN dao_paths d ON d.id = u.dao_path_id
-            WHERE id = ?
+            WHERE u.id = ?
             LIMIT 1
             FOR UPDATE
         ");

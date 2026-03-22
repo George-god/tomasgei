@@ -6,6 +6,9 @@ namespace Game\Service;
 require_once __DIR__ . '/BattleEngine.php';
 require_once __DIR__ . '/DaoTechniqueService.php';
 require_once __DIR__ . '/DaoRecord.php';
+require_once __DIR__ . '/StatCalculator.php';
+require_once __DIR__ . '/ActivityService.php';
+require_once __DIR__ . '/TitleService.php';
 
 use Game\Config\Database;
 use PDOException;
@@ -222,6 +225,19 @@ class PvEBattleService
                 $db
             );
 
+            if ($winner === 'user') {
+                try {
+                    (new ActivityService())->recordPveWin($userId);
+                } catch (\Throwable $e) {
+                    error_log('Activity PvE: ' . $e->getMessage());
+                }
+                try {
+                    (new TitleService())->onPveWin($userId);
+                } catch (\Throwable $e) {
+                    error_log('Title PvE: ' . $e->getMessage());
+                }
+            }
+
             return [
                 'success' => true,
                 'winner' => $winner,
@@ -373,9 +389,23 @@ class PvEBattleService
                 ];
             }
 
+            $winner = $userChi > 0 ? 'user' : 'npc';
+            if ($winner === 'user') {
+                try {
+                    (new ActivityService())->recordPveWin($userId);
+                } catch (\Throwable $e) {
+                    error_log('Activity PvE (custom): ' . $e->getMessage());
+                }
+                try {
+                    (new TitleService())->onPveWin($userId);
+                } catch (\Throwable $e) {
+                    error_log('Title PvE (custom): ' . $e->getMessage());
+                }
+            }
+
             return [
                 'success' => true,
-                'winner' => $userChi > 0 ? 'user' : 'npc',
+                'winner' => $winner,
                 'battle_log' => $battleLog,
                 'user_chi_after' => $userChi,
                 'npc_hp_max' => $enemyHpMax,

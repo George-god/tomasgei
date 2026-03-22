@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/core/bootstrap.php';
 require_once dirname(__DIR__) . '/core/ApiResponse.php';
 require_once dirname(__DIR__) . '/core/SessionHelper.php';
 require_once dirname(__DIR__) . '/services/AlchemyService.php';
+require_once dirname(__DIR__) . '/services/ActivityService.php';
 
 use Game\Helper\ApiResponse;
 use Game\Helper\SessionHelper;
@@ -26,6 +27,14 @@ $result = $service->craft($userId, $recipeId);
 
 if (!$result['success']) {
     ApiResponse::error($result['message'] ?? 'Craft failed.', 400);
+}
+
+if (!empty($result['craft_success'])) {
+    try {
+        (new ActivityService())->recordCraft($userId);
+    } catch (\Throwable $e) {
+        error_log('Activity craft: ' . $e->getMessage());
+    }
 }
 
 ApiResponse::success($result['data'] ?? null, $result['message'] ?? 'Craft complete.');

@@ -94,9 +94,14 @@
                     var d = data.data;
                     updateChiBar(d.chi, d.max_chi);
                     updateStats({ attack: d.attack, defense: d.defense, level: d.level });
-                    showStatus(d.level_up ? 'Level up! Level ' + d.new_level + '.' : 'Gained ' + formatNum(d.chi_gained) + ' chi.', false);
+                    if (d.chi_gained && d.chi_gained > 0) {
+                        showStatus(d.level_up ? 'Level up! Level ' + d.new_level + '.' : 'Gained ' + formatNum(d.chi_gained) + ' chi.', false);
+                    } else {
+                        showStatus('Your chi is already at maximum. Break through or fight to increase it further.', false);
+                    }
                     setButtonDisabled(false);
-                    startCooldown(10);
+                    var baseCd = (d.cooldown_remaining != null ? d.cooldown_remaining : 5);
+                    startCooldown(baseCd);
                 } else {
                     var cooldown = (data.data && data.data.cooldown_remaining) || 0;
                     if (cooldown > 0) {

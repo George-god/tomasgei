@@ -5,6 +5,7 @@ namespace Game\Service;
 
 require_once __DIR__ . '/CultivationManualService.php';
 require_once __DIR__ . '/PvEBattleService.php';
+require_once __DIR__ . '/StatCalculator.php';
 
 use Game\Config\Database;
 use PDO;
@@ -15,7 +16,7 @@ use PDOException;
  */
 class ExplorationService
 {
-    private const EXPLORE_COOLDOWN_SECONDS = 60;
+    private const EXPLORE_COOLDOWN_SECONDS = 10;
     private const RUNE_FRAGMENT_TEMPLATE_ID = 56;
 
     public function getRegionsForUser(int $userId): array

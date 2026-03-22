@@ -63,10 +63,13 @@ $slotKeys = ['weapon', 'armor', 'accessory_1', 'accessory_2'];
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-                🛡️ Equipment
-            </h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+                    🛡️ Equipment
+                </h1>
+            </div>
             <div class="flex gap-4">
                 <a href="inventory.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-emerald-500/30 text-emerald-300 transition-all">Inventory</a>
                 <a href="game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
@@ -161,7 +164,7 @@ $slotKeys = ['weapon', 'armor', 'accessory_1', 'accessory_2'];
                 <?php endforeach; ?>
             </div>
             <?php if (empty($unequippedEquippable)): ?>
-                <p class="text-gray-400">No unequipped gear in inventory. <a href="npc_arena.php" class="text-cyan-400 hover:underline">Fight NPCs</a> for loot.</p>
+                <p class="text-gray-400">No unequipped gear in inventory. <a href="world_map.php" class="text-cyan-400 hover:underline">Explore the world</a> to trigger NPC encounters for loot.</p>
             <?php endif; ?>
         </div>
     </div>

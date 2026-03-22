@@ -52,10 +52,13 @@ if ($blacksmithProfession) {
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-orange-400 to-amber-600 bg-clip-text text-transparent">
-                🔨 Blacksmith
-            </h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-orange-400 to-amber-600 bg-clip-text text-transparent">
+                    🔨 Blacksmith
+                </h1>
+            </div>
             <div class="flex flex-wrap gap-4 items-center">
                 <span class="text-amber-300 font-semibold"><?php echo number_format($userGold); ?> Gold</span>
                 <span class="text-gray-300">Iron: <strong><?php echo $materialTier1; ?></strong></span>

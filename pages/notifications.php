@@ -43,10 +43,13 @@ $notifications = $notificationService->getNotifications($userId, false, 50);
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                🔔 Notifications
-            </h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                    🔔 Notifications
+                </h1>
+            </div>
             <div class="flex gap-4">
                 <?php if (!empty($notifications)): ?>
                     <form method="POST" class="inline">

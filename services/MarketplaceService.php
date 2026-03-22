@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/ItemService.php';
 require_once __DIR__ . '/DaoRecord.php';
 
 use Game\Config\Database;

@@ -69,11 +69,12 @@ class NotificationService
                 $sql .= " AND is_read = 0";
             }
             
-            $sql .= " ORDER BY created_at DESC LIMIT ?";
+            $limit = max(1, min(500, (int)$limit));
+            $sql .= " ORDER BY created_at DESC LIMIT " . $limit;
             
             $stmt = $db->prepare($sql);
-            $stmt->execute([$userId, $limit]);
-            return $stmt->fetchAll();
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Failed to fetch notifications: " . $e->getMessage());
             return [];

@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/ProfessionService.php';
+require_once __DIR__ . '/ItemService.php';
+
 use Game\Config\Database;
 use PDO;
 use PDOException;

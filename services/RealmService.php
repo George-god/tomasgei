@@ -107,16 +107,18 @@ class RealmService
             $nextStmt = $db->prepare("SELECT id, name, $col as required_level FROM realms WHERE $col > ? ORDER BY $col ASC LIMIT 1");
             $nextStmt->execute([$currentRequired]);
             $nextRealm = $nextStmt->fetch();
-            if (!$nextRealm || $userLevel < (int)$nextRealm['required_level']) {
-                return ['available' => false, 'next_realm' => null];
-            }
-            return [
-                'available' => true,
-                'next_realm' => [
+            $nextRealmData = null;
+            if ($nextRealm) {
+                $nextRealmData = [
                     'id' => (int)$nextRealm['id'],
                     'name' => (string)$nextRealm['name'],
                     'required_level' => (int)$nextRealm['required_level']
-                ]
+                ];
+            }
+            $canBreakthrough = $nextRealmData && $userLevel >= $nextRealmData['required_level'];
+            return [
+                'available' => $canBreakthrough,
+                'next_realm' => $nextRealmData
             ];
         } catch (\Throwable $e) {
             error_log("RealmService::getBreakthroughAvailable " . $e->getMessage());

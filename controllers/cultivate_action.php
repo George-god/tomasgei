@@ -60,6 +60,8 @@ $stmt = $db->prepare("SELECT chi, max_chi, level, attack, defense FROM users WHE
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
+$cooldownRemaining = (int)($result['cooldown_remaining'] ?? 0);
+
 $payload = [
     'chi_gained' => (int)$result['chi_gained'],
     'chi' => $user ? max(0, (int)$user['chi']) : (int)$result['chi_after'],
@@ -70,7 +72,7 @@ $payload = [
     'level_up' => !empty($result['level_up']),
     'new_level' => isset($result['new_level']) ? (int)$result['new_level'] : null,
     'new_max_chi' => isset($result['new_max_chi']) ? (int)$result['new_max_chi'] : null,
-    'cooldown_remaining' => 0
+    'cooldown_remaining' => $cooldownRemaining
 ];
 
 ApiResponse::success($payload);

@@ -110,43 +110,46 @@
         for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
     }
 
-    document.getElementById('npc-list').addEventListener('click', function (e) {
-        var btn = e.target.closest('.pve-fight-btn');
-        if (!btn || btn.disabled) return;
-        var npcId = btn.getAttribute('data-npc-id');
-        var npcName = btn.getAttribute('data-npc-name') || 'Enemy';
-        var card = btn.parentElement;
-        var techniqueToggle = card ? card.querySelector('.pve-technique-toggle') : null;
-        if (!npcId) return;
+    var npcList = document.getElementById('npc-list');
+    if (npcList) {
+        npcList.addEventListener('click', function (e) {
+            var btn = e.target.closest('.pve-fight-btn');
+            if (!btn || btn.disabled) return;
+            var npcId = btn.getAttribute('data-npc-id');
+            var npcName = btn.getAttribute('data-npc-name') || 'Enemy';
+            var card = btn.parentElement;
+            var techniqueToggle = card ? card.querySelector('.pve-technique-toggle') : null;
+            if (!npcId) return;
 
-        showBattlePanel(npcName);
-        disableFightButtons();
-        setBar(battleUserBar, 100, 100);
-        setBar(battleNpcBar, 100, 100);
-        if (battleUserText) battleUserText.textContent = '— / —';
-        if (battleNpcText) battleNpcText.textContent = '— / —';
+            showBattlePanel(npcName);
+            disableFightButtons();
+            setBar(battleUserBar, 100, 100);
+            setBar(battleNpcBar, 100, 100);
+            if (battleUserText) battleUserText.textContent = '— / —';
+            if (battleNpcText) battleNpcText.textContent = '— / —';
 
-        var form = new FormData();
-        form.append('npc_id', npcId);
-        form.append('use_dao_techniques', techniqueToggle && techniqueToggle.checked ? '1' : '0');
+            var form = new FormData();
+            form.append('npc_id', npcId);
+            form.append('use_dao_techniques', techniqueToggle && techniqueToggle.checked ? '1' : '0');
 
-        fetch('../controllers/pve_attack.php', {
-            method: 'POST',
-            body: form
-        })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.success && data.data) {
-                    animateBattle(data.data);
-                } else {
-                    if (battleLog) battleLog.innerHTML = '<div class="text-red-400">' + (data.message || 'Battle failed.') + '</div>';
-                    enableFightButtons();
-                }
+            fetch('../controllers/pve_attack.php', {
+                method: 'POST',
+                body: form
             })
-            .catch(function () {
-                if (battleLog) battleLog.innerHTML = '<div class="text-red-400">Request failed.</div>';
-                enableFightButtons();
-            });
-    });
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.success && data.data) {
+                        animateBattle(data.data);
+                    } else {
+                        if (battleLog) battleLog.innerHTML = '<div class="text-red-400">' + (data.message || 'Battle failed.') + '</div>';
+                        enableFightButtons();
+                    }
+                })
+                .catch(function () {
+                    if (battleLog) battleLog.innerHTML = '<div class="text-red-400">Request failed.</div>';
+                    enableFightButtons();
+                });
+        });
+    }
 })();
 

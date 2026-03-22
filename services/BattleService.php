@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/StatCalculator.php';
+require_once __DIR__ . '/RealmEffects.php';
+require_once __DIR__ . '/ActivityService.php';
+require_once __DIR__ . '/TitleService.php';
+require_once __DIR__ . '/SeasonService.php';
 require_once __DIR__ . '/DaoTechniqueService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/../core/Cache.php';
@@ -254,6 +259,25 @@ class BattleService
             Cache::forgetByPrefix('ranking:');
 
             $db->commit();
+
+            try {
+                $act = new ActivityService();
+                $act->recordPvpBattle($attackerId);
+                $act->recordPvpBattle($defenderId);
+            } catch (\Throwable $e) {
+                error_log('Activity PvP: ' . $e->getMessage());
+            }
+            try {
+                $ts = new TitleService();
+                $ts->onPvpWin($winnerId);
+            } catch (\Throwable $e) {
+                error_log('Title PvP: ' . $e->getMessage());
+            }
+            try {
+                (new SeasonService())->onPvpWin($winnerId);
+            } catch (\Throwable $e) {
+                error_log('Season PvP: ' . $e->getMessage());
+            }
 
             return [
                 'success' => true,

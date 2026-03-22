@@ -27,8 +27,11 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">World Map</h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">World Map</h1>
+            </div>
             <a href="game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
         </div>
 
@@ -40,6 +43,10 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
                         Current location:
                         <span class="text-white font-medium"><?php echo htmlspecialchars($currentLocation['name'] ?? 'Uncharted', ENT_QUOTES, 'UTF-8'); ?></span>
                     </p>
+                    <p class="text-gray-500 text-xs mt-2 max-w-xl">
+                        Exploring can yield herbs, materials, dungeon clues, rare finds, or <strong class="text-amber-300">hostile encounters</strong>
+                        (PvE vs scaled NPCs for chi, gold, and loot—no PvP rating change).
+                    </p>
                 </div>
                 <div class="text-sm text-gray-400">
                     Next explore:
@@ -49,6 +56,30 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
         </div>
 
         <div id="explore-message" class="mb-4 hidden"></div>
+
+        <div id="explore-battle-panel" class="mb-6 bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-6 hidden">
+            <h2 class="text-xl font-semibold text-cyan-300 mb-4">Encounter: <span id="explore-battle-npc-name"></span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <div class="text-sm text-gray-400 mb-1">You (Chi)</div>
+                    <div class="w-full bg-gray-900 rounded-full h-4 overflow-hidden border border-gray-700">
+                        <div id="explore-battle-user-bar" class="h-full bg-cyan-500 transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                    <div id="explore-battle-user-text" class="text-xs text-gray-400 mt-1">— / —</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-400 mb-1"><span id="explore-battle-npc-label"></span> (HP)</div>
+                    <div class="w-full bg-gray-900 rounded-full h-4 overflow-hidden border border-gray-700">
+                        <div id="explore-battle-npc-bar" class="h-full bg-amber-500 transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                    <div id="explore-battle-npc-text" class="text-xs text-gray-400 mt-1">— / —</div>
+                </div>
+            </div>
+            <div id="explore-battle-log" class="space-y-2 max-h-64 overflow-y-auto mb-4 text-sm"></div>
+            <div id="explore-battle-result" class="text-lg font-semibold hidden"></div>
+            <div id="explore-battle-chi-display" class="text-cyan-300 mt-2 hidden">Chi: <span id="explore-battle-chi-value"></span></div>
+        </div>
+
         <div id="explore-result" class="mb-6 hidden bg-gray-800/90 backdrop-blur border border-gray-700 rounded-xl p-6"></div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -87,6 +118,7 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
         </div>
     </div>
 
+    <script src="../explore_encounter.js"></script>
     <script>
     (function() {
         var messageEl = document.getElementById('explore-message');
@@ -135,23 +167,29 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
             return '<div class="text-sm text-emerald-300">Found: ' + item.name + ' x' + (item.quantity || 1) + '</div>';
         }
 
-        function renderEncounter(data) {
-            if (!data) return '<p class="text-gray-400">Battle data unavailable.</p>';
-            var html = '';
-            html += '<h3 class="text-lg font-semibold text-red-300 mb-2">Encounter: ' + (data.npc_name || 'Enemy') + '</h3>';
-            html += '<p class="text-sm text-gray-400 mb-2">Winner: <span class="text-white">' + (data.winner || 'unknown') + '</span></p>';
-            html += '<p class="text-sm text-gray-400 mb-2">Chi reward: ' + (data.chi_reward || 0) + ' | Gold: ' + (data.gold_gained || 0) + '</p>';
-            if (data.battle_log && data.battle_log.length) {
-                html += '<div class="space-y-1 text-sm">';
-                data.battle_log.forEach(function(row) {
-                    var actor = row.attacker === 'user' ? 'You' : (data.npc_name || 'Enemy');
-                    html += '<div class="text-gray-300">' + actor + ' dealt ' + row.damage + ' damage.</div>';
-                });
-                html += '</div>';
+        function escapeHtml(s) {
+            if (!s) return '';
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function buildEncounterAftermathHtml(payload, data) {
+            if (!data) return '<p class="text-gray-400">Encounter complete.</p>';
+            var html = '<h3 class="text-lg font-semibold text-amber-300 mb-2">Encounter: ' + escapeHtml(data.npc_name || 'Enemy') + '</h3>';
+            html += '<p class="text-sm text-gray-400 mb-3">' + escapeHtml(payload.message || '') + '</p>';
+            html += '<ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">';
+            html += '<li>Winner: <strong class="text-white">' + escapeHtml(String(data.winner || '')) + '</strong></li>';
+            html += '<li>Chi reward: ' + (data.chi_reward || 0) + ' · Gold: ' + (data.gold_gained || 0) + ' · Spirit stones: ' + (data.spirit_stone_gained || 0) + '</li>';
+            html += '</ul>';
+            if (data.herb_dropped) html += '<div class="text-green-300 text-sm mt-2">Herb: ' + escapeHtml(data.herb_dropped.name || '') + '</div>';
+            if (data.material_dropped) html += '<div class="text-orange-300 text-sm mt-1">Material: ' + escapeHtml(data.material_dropped.name || '') + '</div>';
+            if (data.rune_fragment_dropped) html += '<div class="text-purple-300 text-sm mt-1">Rune fragment acquired.</div>';
+            if (data.dropped_item) {
+                var it = data.dropped_item;
+                html += '<div class="text-cyan-300 text-sm mt-2">Gear drop: ' + escapeHtml(it.name || 'Item') + '</div>';
             }
-            if (data.herb_dropped) html += '<div class="text-green-300 mt-2">Herb drop: ' + data.herb_dropped.name + '</div>';
-            if (data.material_dropped) html += '<div class="text-orange-300 mt-1">Material drop: ' + data.material_dropped.name + '</div>';
-            if (data.rune_fragment_dropped) html += '<div class="text-purple-300 mt-1">Rune Fragment discovered.</div>';
+            html += '<p class="text-xs text-gray-500 mt-4">Rewards above are already applied. Battle playback is shown in the panel above.</p>';
             return html;
         }
 
@@ -161,8 +199,17 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
             var eventType = payload.event_type || 'nothing';
             var data = payload.data || null;
 
-            if (eventType === 'encounter') {
-                html = renderEncounter(data);
+            if (eventType === 'encounter' && data && typeof playExploreEncounterBattle === 'function') {
+                resultEl.classList.add('hidden');
+                playExploreEncounterBattle('explore-', data, function() {
+                    resultEl.innerHTML = buildEncounterAftermathHtml(payload, data);
+                    resultEl.classList.remove('hidden');
+                });
+                return;
+            }
+
+            if (eventType === 'encounter' && data) {
+                html = buildEncounterAftermathHtml(payload, data);
             } else if (eventType === 'dungeon_discovery' && data && data.dungeon) {
                 html = '<h3 class="text-lg font-semibold text-purple-300 mb-2">Hidden Dungeon Discovered</h3>';
                 html += '<p class="text-gray-300 mb-2">' + data.dungeon.name + ' | Difficulty ' + data.dungeon.difficulty + '</p>';
@@ -191,6 +238,8 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
                 if (btn.disabled) return;
                 var regionId = btn.getAttribute('data-region-id');
                 if (!regionId) return;
+                var battlePanel = document.getElementById('explore-battle-panel');
+                if (battlePanel) battlePanel.classList.add('hidden');
                 btn.disabled = true;
                 var fd = new FormData();
                 fd.append('region_id', regionId);
@@ -200,7 +249,11 @@ $cooldownRemaining = (int)($mapData['cooldown_remaining'] ?? 0);
                     .then(function(data) {
                         if (data.success && data.data) {
                             showMessage(data.message || 'Exploration complete.', false);
-                            renderResult(data.data);
+                            var payload = data.data;
+                            if (data.message) {
+                                payload.message = data.message;
+                            }
+                            renderResult(payload);
                             startCooldown(parseInt(data.data.cooldown_remaining || 60, 10));
                         } else {
                             showMessage(data.message || 'Exploration failed.', true);

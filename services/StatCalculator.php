@@ -5,6 +5,7 @@ namespace Game\Service;
 
 require_once __DIR__ . '/ItemService.php';
 require_once __DIR__ . '/CultivationManualService.php';
+require_once __DIR__ . '/TitleService.php';
 
 use Game\Config\Database;
 use PDOException;
@@ -30,6 +31,7 @@ class StatCalculator
 
         $afterEquipment = $this->applyEquippedItemBonuses($baseStats, $userId);
         $finalStats = $this->applyCultivationManualBonuses($this->applyRealmMultipliers($afterEquipment), $userId);
+        $finalStats = $this->applyTitleBonuses($finalStats, $userId);
         $equipmentBonus = $this->getEquippedItemBonusesSummary($userId);
 
         return [
@@ -247,6 +249,45 @@ class StatCalculator
             'dao_self_damage_pct' => (float)($stats['dao_self_damage_pct'] ?? 0.0),
             'dao_favored_tribulation' => $stats['dao_favored_tribulation'] ?? null,
             'manual_effects' => $effects,
+        ];
+    }
+
+    /**
+     * Equipped title: small % bonuses to attack, defense, max chi.
+     */
+    private function applyTitleBonuses(array $stats, int $userId): array
+    {
+        $titleService = new TitleService();
+        $b = $titleService->getEquippedBonuses($userId);
+        $atk = (float)($b['attack_pct'] ?? 0.0);
+        $def = (float)($b['defense_pct'] ?? 0.0);
+        $mc = (float)($b['max_chi_pct'] ?? 0.0);
+        $attack = max(1, (int)round(($stats['attack'] ?? 0) * (1 + $atk)));
+        $defense = max(0, (int)round(($stats['defense'] ?? 0) * (1 + $def)));
+        $maxChi = max(1, (int)round(($stats['max_chi'] ?? 1) * (1 + $mc)));
+
+        return [
+            'attack' => $attack,
+            'defense' => $defense,
+            'chi' => min((int)$stats['chi'], $maxChi),
+            'max_chi' => $maxChi,
+            'level' => $stats['level'],
+            'realm_id' => $stats['realm_id'],
+            'active_scroll_type' => $stats['active_scroll_type'] ?? null,
+            'dao_path_key' => $stats['dao_path_key'] ?? null,
+            'dao_path_name' => $stats['dao_path_name'] ?? null,
+            'dao_alignment' => $stats['dao_alignment'] ?? null,
+            'dao_element' => $stats['dao_element'] ?? null,
+            'dao_attack_bonus_pct' => (float)($stats['dao_attack_bonus_pct'] ?? 0.0),
+            'dao_defense_bonus_pct' => (float)($stats['dao_defense_bonus_pct'] ?? 0.0),
+            'dao_max_chi_bonus_pct' => (float)($stats['dao_max_chi_bonus_pct'] ?? 0.0),
+            'dao_dodge_bonus' => (float)($stats['dao_dodge_bonus'] ?? 0.0),
+            'dao_bonus_damage_pct' => (float)($stats['dao_bonus_damage_pct'] ?? 0.0),
+            'dao_heal_on_hit_pct' => (float)($stats['dao_heal_on_hit_pct'] ?? 0.0),
+            'dao_reflect_damage_pct' => (float)($stats['dao_reflect_damage_pct'] ?? 0.0),
+            'dao_self_damage_pct' => (float)($stats['dao_self_damage_pct'] ?? 0.0),
+            'dao_favored_tribulation' => $stats['dao_favored_tribulation'] ?? null,
+            'manual_effects' => $stats['manual_effects'] ?? [],
         ];
     }
 

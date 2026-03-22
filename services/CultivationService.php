@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Game\Service;
 
+require_once __DIR__ . '/SeasonService.php';
+
 use Game\Config\Database;
 use PDOException;
 
@@ -14,7 +16,7 @@ use PDOException;
  */
 class CultivationService
 {
-    private const COOLDOWN_SECONDS = 10;
+    private const COOLDOWN_SECONDS = 5;
     private const CHI_RAND_MIN = 20;
     private const CHI_RAND_MAX = 40;
     private const LEVEL_CHI_FACTOR = 3;
@@ -65,7 +67,13 @@ class CultivationService
 
             $db->commit();
 
-            $out = [
+            try {
+                (new SeasonService())->onCultivation($userId, $actualGain);
+            } catch (\Throwable $e) {
+                error_log('Season cultivation: ' . $e->getMessage());
+            }
+
+            return [
                 'success' => true,
                 'chi_gained' => $actualGain,
                 'chi_before' => $currentChi,
@@ -74,9 +82,8 @@ class CultivationService
                 'level_up' => $levelUpResult['leveled_up'],
                 'new_level' => $levelUpResult['new_level'],
                 'new_max_chi' => $levelUpResult['new_max_chi'],
-                'cooldown_remaining' => 0
+                'cooldown_remaining' => self::COOLDOWN_SECONDS
             ];
-            return $out;
         } catch (\Exception $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
@@ -103,7 +110,11 @@ class CultivationService
             return ['can_cultivate' => true, 'error' => null, 'cooldown_remaining' => 0];
         }
         $elapsed = time() - (int)strtotime($last);
-        $remaining = self::COOLDOWN_SECONDS - $elapsed;
+        if ($elapsed < 0) {
+            // Timestamp in the future (time skew): treat cooldown as expired so cultivation is allowed
+            return ['can_cultivate' => true, 'error' => null, 'cooldown_remaining' => 0];
+        }
+        $remaining = max(0, self::COOLDOWN_SECONDS - $elapsed);
         if ($remaining > 0) {
             return [
                 'can_cultivate' => false,
@@ -194,7 +205,11 @@ class CultivationService
             }
 
             $elapsed = time() - (int)strtotime($user['last_cultivation_at']);
-            $remaining = max(0, self::COOLDOWN_SECONDS - $elapsed);
+            if ($elapsed < 0) {
+                $remaining = 0;
+            } else {
+                $remaining = max(0, self::COOLDOWN_SECONDS - $elapsed);
+            }
 
             return [
                 'can_cultivate' => $remaining === 0,

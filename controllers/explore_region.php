@@ -5,10 +5,14 @@ require_once dirname(__DIR__) . '/core/bootstrap.php';
 require_once dirname(__DIR__) . '/core/ApiResponse.php';
 require_once dirname(__DIR__) . '/core/SessionHelper.php';
 require_once dirname(__DIR__) . '/services/ExplorationService.php';
+require_once dirname(__DIR__) . '/services/ActivityService.php';
+require_once dirname(__DIR__) . '/services/TitleService.php';
 
 use Game\Helper\ApiResponse;
 use Game\Helper\SessionHelper;
 use Game\Service\ExplorationService;
+use Game\Service\ActivityService;
+use Game\Service\TitleService;
 
 $userId = SessionHelper::requireUserIdForApi();
 
@@ -30,6 +34,17 @@ if (!$result['success']) {
         $extra['cooldown_remaining'] = (int)$result['cooldown_remaining'];
     }
     ApiResponse::error($result['message'] ?? 'Exploration failed.', 400, $extra);
+}
+
+try {
+    (new ActivityService())->recordExploration($userId);
+} catch (\Throwable $e) {
+    error_log('Activity exploration: ' . $e->getMessage());
+}
+try {
+    (new TitleService())->onExplore($userId);
+} catch (\Throwable $e) {
+    error_log('Title exploration: ' . $e->getMessage());
 }
 
 $payload = [

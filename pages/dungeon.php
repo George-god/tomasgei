@@ -64,10 +64,13 @@ $locked = ($service->getDungeonsForUser($userId)['user_realm_id'] ?? 1) < (int)$
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 to-red-500 bg-clip-text text-transparent">
-                <?php echo htmlspecialchars($dungeon['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
-            </h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 to-red-500 bg-clip-text text-transparent">
+                    <?php echo htmlspecialchars($dungeon['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                </h1>
+            </div>
             <div class="flex gap-2">
                 <a href="dungeons.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-purple-500/30 text-purple-300 transition-all">Dungeons</a>
                 <a href="game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>

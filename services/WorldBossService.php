@@ -5,6 +5,9 @@ namespace Game\Service;
 
 require_once __DIR__ . '/CultivationManualService.php';
 require_once __DIR__ . '/DaoRecord.php';
+require_once __DIR__ . '/ActivityService.php';
+require_once __DIR__ . '/TitleService.php';
+require_once __DIR__ . '/SeasonService.php';
 require_once __DIR__ . '/../core/Cache.php';
 
 use Game\Config\Database;
@@ -175,6 +178,22 @@ class WorldBossService
             }
 
             $db->commit();
+
+            try {
+                (new ActivityService())->recordBossDamage($userId, $actualDamage);
+            } catch (\Throwable $e) {
+                error_log('Activity boss: ' . $e->getMessage());
+            }
+            try {
+                (new TitleService())->onBossAttack($userId);
+            } catch (\Throwable $e) {
+                error_log('Title boss: ' . $e->getMessage());
+            }
+            try {
+                (new SeasonService())->onWorldBossDamage($userId, $actualDamage);
+            } catch (\Throwable $e) {
+                error_log('Season boss: ' . $e->getMessage());
+            }
 
             return [
                 'success' => true,

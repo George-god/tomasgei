@@ -63,10 +63,13 @@ if ($equipment['accessory_2_id']) $inventoryIdToSlot[$equipment['accessory_2_id'
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                🎒 Inventory
-            </h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                    🎒 Inventory
+                </h1>
+            </div>
             <div class="flex gap-4">
                 <a href="equipment.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-violet-500/30 text-violet-300 transition-all">Equipment</a>
                 <a href="game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
@@ -134,7 +137,7 @@ if ($equipment['accessory_2_id']) $inventoryIdToSlot[$equipment['accessory_2_id'
                 <?php endforeach; ?>
             </div>
             <?php if (empty($inventory)): ?>
-                <p class="text-gray-400">Your inventory is empty. Fight NPCs in the Arena to get loot.</p>
+                <p class="text-gray-400">Your inventory is empty. Use the World Map to explore—hostile encounters can drop loot.</p>
             <?php endif; ?>
         </div>
     </div>

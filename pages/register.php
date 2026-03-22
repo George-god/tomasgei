@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $result['user']->getId();
         $_SESSION['username'] = $result['user']->getUsername();
         $_SESSION['is_admin'] = $result['user']->isAdmin();
+        $_SESSION['admin_level'] = $result['user']->isAdmin() ? ($result['user']->getAdminLevel() ?? 'overseer') : null;
         $_SESSION['realm_id'] = $result['user']->getRealmId();
         $_SESSION['level'] = $result['user']->getLevel();
         
@@ -76,13 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="relative z-10 w-full max-w-md">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
-                🌌 Cultivation Journey
-            </h1>
-            <p class="text-gray-400 text-sm">Begin your path to immortality</p>
-        </div>
+        <!-- Logo and site name -->
+        <?php require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+        <p class="text-center text-gray-400 text-sm -mt-4 mb-8">Begin your path to immortality</p>
 
         <!-- Registration Card -->
         <div class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl shadow-2xl shadow-cyan-500/10 p-8">

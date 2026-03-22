@@ -49,10 +49,15 @@ $neutralTerritories = $totalTerritories - $controlledTerritories;
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Territories</h1>
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Territories</h1>
+            </div>
             <div class="flex gap-2">
                 <a href="sect.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-amber-500/30 text-amber-300 transition-all">Sect</a>
+                <a href="alliance.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-sky-500/30 text-sky-300 transition-all">Alliance</a>
+                <a href="diplomacy.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-violet-500/30 text-violet-300 transition-all">Diplomacy</a>
                 <a href="game.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 text-cyan-300 transition-all">← Dashboard</a>
             </div>
         </div>
@@ -175,6 +180,10 @@ $neutralTerritories = $totalTerritories - $controlledTerritories;
                             </form>
                         <?php elseif (!empty($territory['is_owned_by_my_sect'])): ?>
                             <div class="text-sm text-emerald-300">Controlled by your sect</div>
+                        <?php elseif (!empty($territory['owner_is_allied'])): ?>
+                            <div class="text-sm text-sky-300">Held by an allied sect — you cannot declare war here.</div>
+                        <?php elseif (!empty($territory['owner_has_nap'])): ?>
+                            <div class="text-sm text-violet-300">Non-aggression pact with the holder — you cannot declare war here.</div>
                         <?php elseif ($activeWar): ?>
                             <div class="text-sm text-gray-500">Your sect is already fighting another war.</div>
                         <?php else: ?>

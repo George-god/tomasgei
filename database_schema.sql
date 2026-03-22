@@ -403,6 +403,7 @@ CREATE TABLE IF NOT EXISTS sects (
     leader_user_id INT UNSIGNED NULL DEFAULT NULL,
     tier ENUM('third','second','first') NOT NULL DEFAULT 'third',
     sect_exp INT UNSIGNED NOT NULL DEFAULT 0,
+    sect_reputation INT NOT NULL DEFAULT 1000,
     member_count INT UNSIGNED NOT NULL DEFAULT 0,
     total_rating DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -412,7 +413,8 @@ CREATE TABLE IF NOT EXISTS sects (
     INDEX idx_leader_id (leader_id),
     INDEX idx_leader_user_id (leader_user_id),
     INDEX idx_tier (tier),
-    INDEX idx_sect_exp_id (sect_exp DESC, id ASC)
+    INDEX idx_sect_exp_id (sect_exp DESC, id ASC),
+    INDEX idx_sect_reputation (sect_reputation DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS sect_library_manuals (
@@ -451,6 +453,60 @@ CREATE TABLE IF NOT EXISTS sect_members (
     INDEX idx_sect_rank (sect_id, rank),
     INDEX idx_sect_joined (sect_id, joined_at),
     INDEX idx_sect_contribution_joined (sect_id, contribution DESC, joined_at ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sect alliances (3–5 sects; war damage bonuses when pact is 3+ members)
+CREATE TABLE IF NOT EXISTS alliances (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_alliances_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS alliance_members (
+    alliance_id INT UNSIGNED NOT NULL,
+    sect_id INT UNSIGNED NOT NULL,
+    role ENUM('founder', 'member') NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (alliance_id, sect_id),
+    UNIQUE KEY uk_alliance_members_sect (sect_id),
+    FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+    FOREIGN KEY (sect_id) REFERENCES sects(id) ON DELETE CASCADE,
+    INDEX idx_alliance_members_alliance (alliance_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS alliance_invitations (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    alliance_id INT UNSIGNED NOT NULL,
+    target_sect_id INT UNSIGNED NOT NULL,
+    inviter_sect_id INT UNSIGNED NOT NULL,
+    status ENUM('pending', 'accepted', 'declined', 'cancelled') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_alliance_invite_pair (alliance_id, target_sect_id),
+    FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_sect_id) REFERENCES sects(id) ON DELETE CASCADE,
+    FOREIGN KEY (inviter_sect_id) REFERENCES sects(id) ON DELETE CASCADE,
+    INDEX idx_alliance_invitations_target (target_sect_id, status),
+    INDEX idx_alliance_invitations_alliance (alliance_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Diplomacy: non-aggression, rivalry, reputation swings
+CREATE TABLE IF NOT EXISTS sect_relations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    lower_sect_id INT UNSIGNED NOT NULL,
+    higher_sect_id INT UNSIGNED NOT NULL,
+    nap_status ENUM('none', 'pending', 'active') NOT NULL DEFAULT 'none',
+    nap_proposed_by_sect_id INT UNSIGNED NULL DEFAULT NULL,
+    nap_started_at DATETIME NULL DEFAULT NULL,
+    is_rival TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_sect_relations_pair (lower_sect_id, higher_sect_id),
+    FOREIGN KEY (lower_sect_id) REFERENCES sects(id) ON DELETE CASCADE,
+    FOREIGN KEY (higher_sect_id) REFERENCES sects(id) ON DELETE CASCADE,
+    FOREIGN KEY (nap_proposed_by_sect_id) REFERENCES sects(id) ON DELETE SET NULL,
+    INDEX idx_sect_relations_lower (lower_sect_id),
+    INDEX idx_sect_relations_higher (higher_sect_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tribulations table (major realm breakthrough survival records)
@@ -1226,3 +1282,150 @@ SELECT r.id, NULL, NULL
 FROM world_regions r
 WHERE COALESCE(r.can_be_captured, 0) = 1
 ON DUPLICATE KEY UPDATE region_id = VALUES(region_id);
+
+-- Heavenly Dao Command System: log every admin command execution
+CREATE TABLE IF NOT EXISTS dao_commands_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT UNSIGNED NOT NULL,
+    command VARCHAR(50) NOT NULL,
+    target_id INT UNSIGNED NULL DEFAULT NULL,
+    params_json JSON NULL,
+    result_success TINYINT(1) NOT NULL DEFAULT 0,
+    result_message VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_dao_commands_admin (admin_user_id, created_at),
+    INDEX idx_dao_commands_command (command, created_at),
+    INDEX idx_dao_commands_created (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin permission levels: observer (view only), executor (run non-destructive commands), overseer (full)
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS admin_level VARCHAR(20) NULL DEFAULT NULL AFTER is_admin;
+UPDATE users SET admin_level = 'overseer' WHERE is_admin = 1 AND (admin_level IS NULL OR admin_level = '');
+
+-- Daily & weekly activity tasks (see services/ActivityService.php)
+CREATE TABLE IF NOT EXISTS daily_tasks (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    task_key VARCHAR(32) NOT NULL,
+    period_date DATE NOT NULL,
+    target_value INT UNSIGNED NOT NULL DEFAULT 1,
+    progress INT UNSIGNED NOT NULL DEFAULT 0,
+    reward_gold INT UNSIGNED NOT NULL DEFAULT 0,
+    reward_spirit_stones INT UNSIGNED NOT NULL DEFAULT 0,
+    completed_at DATETIME NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_day_task (user_id, period_date, task_key),
+    INDEX idx_user_day (user_id, period_date),
+    CONSTRAINT fk_daily_tasks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS weekly_tasks (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    task_key VARCHAR(32) NOT NULL,
+    week_start DATE NOT NULL,
+    target_value INT UNSIGNED NOT NULL DEFAULT 1,
+    progress INT UNSIGNED NOT NULL DEFAULT 0,
+    reward_gold INT UNSIGNED NOT NULL DEFAULT 0,
+    reward_spirit_stones INT UNSIGNED NOT NULL DEFAULT 0,
+    completed_at DATETIME NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_week_task (user_id, week_start, task_key),
+    INDEX idx_user_week (user_id, week_start),
+    CONSTRAINT fk_weekly_tasks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Player titles (see services/TitleService.php, pages/titles.php)
+CREATE TABLE IF NOT EXISTS titles (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(80) NOT NULL,
+    description VARCHAR(255) NOT NULL DEFAULT '',
+    unlock_type ENUM('pvp_wins','pve_kills','boss_participation','sect_contribution','tribulation_success','exploration','season_rank') NOT NULL,
+    unlock_value INT UNSIGNED NOT NULL DEFAULT 1,
+    bonus_attack_pct DECIMAL(6,5) NOT NULL DEFAULT 0 COMMENT 'e.g. 0.00500 = 0.5%',
+    bonus_defense_pct DECIMAL(6,5) NOT NULL DEFAULT 0,
+    bonus_max_chi_pct DECIMAL(6,5) NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_titles (
+    user_id INT UNSIGNED NOT NULL,
+    title_id INT UNSIGNED NOT NULL,
+    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, title_id),
+    INDEX idx_user (user_id),
+    CONSTRAINT fk_user_titles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_titles_title FOREIGN KEY (title_id) REFERENCES titles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS equipped_title_id INT UNSIGNED NULL DEFAULT NULL AFTER last_sect_war_attack_at,
+    ADD COLUMN IF NOT EXISTS title_pve_wins INT UNSIGNED NOT NULL DEFAULT 0 AFTER equipped_title_id,
+    ADD COLUMN IF NOT EXISTS title_explore_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER title_pve_wins,
+    ADD COLUMN IF NOT EXISTS title_boss_attacks INT UNSIGNED NOT NULL DEFAULT 0 AFTER title_explore_count,
+    ADD COLUMN IF NOT EXISTS title_sect_donated_gold BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER title_boss_attacks,
+    ADD COLUMN IF NOT EXISTS title_tribulations_won INT UNSIGNED NOT NULL DEFAULT 0 AFTER title_sect_donated_gold;
+
+INSERT IGNORE INTO titles (id, slug, name, description, unlock_type, unlock_value, bonus_attack_pct, bonus_defense_pct, bonus_max_chi_pct, sort_order) VALUES
+(1, 'first_blood', 'First Blood', 'Win your first PvP battle.', 'pvp_wins', 1, 0.00300, 0, 0, 10),
+(2, 'duelist', 'Duelist', 'Win 10 PvP battles.', 'pvp_wins', 10, 0.00500, 0.00300, 0, 20),
+(3, 'warlord', 'Warlord', 'Win 50 PvP battles.', 'pvp_wins', 50, 0.01000, 0.00500, 0.00500, 30),
+(4, 'hunter', 'Beast Hunter', 'Win 25 PvE battles.', 'pve_kills', 25, 0.00400, 0.00400, 0, 40),
+(5, 'slayer', 'Realm Slayer', 'Win 100 PvE battles.', 'pve_kills', 100, 0.00800, 0.00600, 0.00400, 50),
+(6, 'skyspear', 'Sky Spear', 'Attack the World Boss 30 times.', 'boss_participation', 30, 0, 0, 0.00800, 60),
+(7, 'patron', 'Sect Patron', 'Donate 5,000 gold total to your sect.', 'sect_contribution', 5000, 0.00300, 0.00600, 0.00300, 70),
+(8, 'benefactor', 'Heavenly Benefactor', 'Donate 50,000 gold total to your sect.', 'sect_contribution', 50000, 0.00600, 0.00800, 0.00600, 80),
+(9, 'thunderheart', 'Thunder Heart', 'Survive a major tribulation once.', 'tribulation_success', 1, 0.00500, 0.00500, 0.00500, 90),
+(10, 'ascendant', 'Ascendant of Trials', 'Survive 5 major tribulations.', 'tribulation_success', 5, 0.01000, 0.00800, 0.00800, 100),
+(11, 'wanderer', 'Realm Wanderer', 'Explore regions 50 times.', 'exploration', 50, 0.00300, 0, 0.00600, 110),
+(12, 'explorer', 'Boundless Explorer', 'Explore regions 200 times.', 'exploration', 200, 0.00600, 0.00400, 0.01000, 120),
+(13, 'season_sovereign', 'Season Sovereign', 'Finished 1st overall in a ranked season.', 'season_rank', 0, 0.01200, 0.00800, 0.00800, 200),
+(14, 'season_ascendant', 'Season Ascendant', 'Finished in the top 3 overall in a ranked season.', 'season_rank', 0, 0.00800, 0.00600, 0.00600, 201),
+(15, 'season_duelist', 'Season Duelist', 'Ranked 1st in PvP for a season.', 'season_rank', 0, 0.01000, 0.00400, 0, 202),
+(16, 'season_worldbreaker', 'Season Worldbreaker', 'Ranked 1st in world boss damage for a season.', 'season_rank', 0, 0.00800, 0.00400, 0.00400, 203),
+(17, 'season_sage', 'Season Sage', 'Ranked 1st in cultivation for a season.', 'season_rank', 0, 0.00400, 0.00400, 0.01000, 204),
+(18, 'season_arbiter', 'Season Arbiter', 'Ranked 1st in sect contribution for a season.', 'season_rank', 0, 0.00600, 0.00800, 0.00400, 205);
+
+-- Seasonal rankings (see services/SeasonService.php)
+CREATE TABLE IF NOT EXISTS seasons (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    slug VARCHAR(64) NOT NULL UNIQUE,
+    starts_at DATETIME NOT NULL,
+    ends_at DATETIME NOT NULL,
+    status ENUM('active', 'ended') NOT NULL DEFAULT 'active',
+    weight_pvp DECIMAL(12,6) NOT NULL DEFAULT 1.000000,
+    weight_boss DECIMAL(12,6) NOT NULL DEFAULT 0.010000,
+    weight_cultivation DECIMAL(12,6) NOT NULL DEFAULT 1.000000,
+    weight_sect DECIMAL(12,6) NOT NULL DEFAULT 5.000000,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status_ends (status, ends_at),
+    INDEX idx_active (status, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS season_rankings (
+    season_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    score_pvp INT UNSIGNED NOT NULL DEFAULT 0,
+    score_world_boss BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    score_cultivation INT UNSIGNED NOT NULL DEFAULT 0,
+    score_sect INT UNSIGNED NOT NULL DEFAULT 0,
+    total_score BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    rank_overall INT UNSIGNED NULL DEFAULT NULL,
+    rank_pvp INT UNSIGNED NULL DEFAULT NULL,
+    rank_boss INT UNSIGNED NULL DEFAULT NULL,
+    rank_cultivation INT UNSIGNED NULL DEFAULT NULL,
+    rank_sect INT UNSIGNED NULL DEFAULT NULL,
+    PRIMARY KEY (season_id, user_id),
+    INDEX idx_season_total (season_id, total_score DESC),
+    INDEX idx_season_pvp (season_id, score_pvp DESC),
+    INDEX idx_season_boss (season_id, score_world_boss DESC),
+    INDEX idx_season_cult (season_id, score_cultivation DESC),
+    INDEX idx_season_sect (season_id, score_sect DESC),
+    CONSTRAINT fk_season_rankings_season FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE,
+    CONSTRAINT fk_season_rankings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

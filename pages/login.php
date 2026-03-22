@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $result['user']->getId();
             $_SESSION['username'] = $result['user']->getUsername();
             $_SESSION['is_admin'] = $result['user']->isAdmin();
+            $_SESSION['admin_level'] = $result['user']->isAdmin() ? ($result['user']->getAdminLevel() ?? 'overseer') : null;
             $_SESSION['realm_id'] = $result['user']->getRealmId();
             $_SESSION['level'] = $result['user']->getLevel();
             
@@ -67,21 +68,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
-    <!-- Background glow effects -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <!-- Upper Realms background image -->
+    <div class="fixed inset-0 z-0">
+        <img src="../assets/images/upper-realms.png" alt="Upper Realms" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-b from-gray-900/85 via-slate-900/80 to-gray-900/90" aria-hidden="true"></div>
+    </div>
+    <!-- Subtle glow overlay -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
     </div>
 
     <div class="relative z-10 w-full max-w-md">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
-                🌌 Cultivation Journey
-            </h1>
-            <p class="text-gray-400 text-sm">Continue your path to immortality</p>
-        </div>
+        <!-- Logo and site name -->
+        <?php require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
 
         <!-- Login Card -->
         <div class="bg-gray-800/90 backdrop-blur-lg border border-cyan-500/30 rounded-xl shadow-2xl shadow-cyan-500/10 p-8">

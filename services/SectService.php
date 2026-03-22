@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Game\Service;
 
 require_once __DIR__ . '/SectBaseService.php';
+require_once __DIR__ . '/TitleService.php';
+require_once __DIR__ . '/SeasonService.php';
 require_once __DIR__ . '/../core/Cache.php';
 
 use Game\Config\Database;
@@ -50,7 +52,7 @@ class SectService
         try {
             $db = Database::getConnection();
             $stmt = $db->prepare("
-                SELECT s.id, s.name, s.leader_user_id, s.tier, s.sect_exp, s.created_at,
+                SELECT s.id, s.name, s.leader_user_id, s.tier, s.sect_exp, s.sect_reputation, s.created_at,
                        m.rank
                 FROM sect_members m
                 JOIN sects s ON s.id = m.sect_id
@@ -374,6 +376,16 @@ class SectService
             $this->invalidateSectCaches();
 
             $db->commit();
+            try {
+                (new TitleService())->onSectDonate($userId, $goldAmount);
+            } catch (\Throwable $e) {
+                error_log('Title sect donate: ' . $e->getMessage());
+            }
+            try {
+                (new SeasonService())->onSectContributionUnits($userId, $contributionGain);
+            } catch (\Throwable $e) {
+                error_log('Season sect donate: ' . $e->getMessage());
+            }
             return [
                 'success' => true,
                 'message' => "Donated {$goldAmount} gold. +{$contributionGain} contribution, +{$sectExpGain} sect EXP.",
