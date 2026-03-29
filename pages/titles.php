@@ -105,7 +105,7 @@ $typeLabels = [
         </div>
 
         <?php if (empty($titles)): ?>
-            <p class="text-gray-500 text-center py-8">No titles defined. Import <code class="text-amber-400">database_titles.sql</code>.</p>
+            <p class="text-gray-500 text-center py-8">No titles defined. Import <code class="text-amber-400">database_full.sql</code> or core <code class="text-amber-400">database_schema.sql</code>.</p>
         <?php endif; ?>
     </div>
     <script>

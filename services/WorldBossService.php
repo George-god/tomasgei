@@ -7,7 +7,9 @@ require_once __DIR__ . '/CultivationManualService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/ActivityService.php';
 require_once __DIR__ . '/TitleService.php';
+require_once __DIR__ . '/ArtifactService.php';
 require_once __DIR__ . '/SeasonService.php';
+require_once __DIR__ . '/BloodlineService.php';
 require_once __DIR__ . '/../core/Cache.php';
 
 use Game\Config\Database;
@@ -128,6 +130,11 @@ class WorldBossService
             $attack = $statCalc->getFinalAttack($userId);
             $variance = self::DAMAGE_VARIANCE_MIN + (mt_rand(1, 100) / 100.0) * (self::DAMAGE_VARIANCE_MAX - self::DAMAGE_VARIANCE_MIN);
             $damage = max(1, (int)round($attack * $variance));
+            try {
+                $damage = max(1, (int)round($damage * (new BloodlineService())->getWorldBossDamageMultiplier($userId)));
+            } catch (\Throwable $e) {
+                error_log('Bloodline boss mult: ' . $e->getMessage());
+            }
 
             $stmt = $db->prepare("
                 SELECT id, name, region_id, max_hp, current_hp, spawn_time, end_time, is_alive, template_id
@@ -193,6 +200,11 @@ class WorldBossService
                 (new SeasonService())->onWorldBossDamage($userId, $actualDamage);
             } catch (\Throwable $e) {
                 error_log('Season boss: ' . $e->getMessage());
+            }
+            try {
+                (new BloodlineService())->syncUnlocksForUser($userId);
+            } catch (\Throwable $e) {
+                error_log('Bloodline boss sync: ' . $e->getMessage());
             }
 
             return [
@@ -448,6 +460,12 @@ class WorldBossService
                 ],
                 $db
             );
+
+            try {
+                (new ArtifactService())->rollWorldBossArtifact($db, $userId, $rank);
+            } catch (\Throwable $e) {
+                error_log('WorldBoss artifact roll: ' . $e->getMessage());
+            }
         }
 
         $message = $isKilled

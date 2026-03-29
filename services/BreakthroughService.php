@@ -6,6 +6,8 @@ namespace Game\Service;
 require_once __DIR__ . '/ItemService.php';
 require_once __DIR__ . '/TribulationService.php';
 require_once __DIR__ . '/SectService.php';
+require_once __DIR__ . '/CaveService.php';
+require_once __DIR__ . '/BloodlineService.php';
 
 use Game\Config\Database;
 use PDOException;
@@ -101,6 +103,10 @@ class BreakthroughService
             $sectService = new SectService();
             $sectBonuses = $sectService->getBonusesForUser($userId);
             $successChance = min(self::MAX_SUCCESS_CHANCE, $successChance + $sectBonuses['breakthrough']);
+            $caveBonuses = (new CaveService())->getEffectiveBonuses($userId);
+            $successChance = min(self::MAX_SUCCESS_CHANCE, $successChance + (float)($caveBonuses['breakthrough'] ?? 0.0));
+            $bloodBonuses = (new BloodlineService())->getPassiveBonuses($userId);
+            $successChance = min(self::MAX_SUCCESS_CHANCE, $successChance + (float)($bloodBonuses['breakthrough_pct'] ?? 0.0));
 
             $roll = mt_rand(1, 10000) / 10000.0;
             $success = $roll <= $successChance;
@@ -114,6 +120,7 @@ class BreakthroughService
                     [
                         'pill_bonus' => $pillBonus / 100.0,
                         'sect_breakthrough_bonus' => (float)$sectBonuses['breakthrough'],
+                        'cave_breakthrough_bonus' => (float)($caveBonuses['breakthrough'] ?? 0.0),
                         'rune_type' => isset($user['active_scroll_type']) && $user['active_scroll_type'] !== '' ? (string)$user['active_scroll_type'] : null,
                         'breakthrough_attempts' => (int)($user['breakthrough_attempts'] ?? 0),
                     ],
@@ -241,6 +248,8 @@ class BreakthroughService
             $activeScrollType = isset($user['active_scroll_type']) && $user['active_scroll_type'] !== '' ? (string)$user['active_scroll_type'] : null;
             $sectService = new SectService();
             $sectBonuses = $sectService->getBonusesForUser($userId);
+            $caveBonuses = (new CaveService())->getEffectiveBonuses($userId);
+            $bloodBonuses = (new BloodlineService())->getPassiveBonuses($userId);
             $tribulationDifficultyPreview = round(1.0 + max(0, ((int)$nextRealm['id'] - 1) * 0.08) + min(0.36, (int)($user['breakthrough_attempts'] ?? 0) * 0.05), 3);
 
             return [
@@ -257,6 +266,8 @@ class BreakthroughService
                 'breakthrough_attempts' => (int)($user['breakthrough_attempts'] ?? 0),
                 'active_scroll_type' => $activeScrollType,
                 'sect_breakthrough_bonus' => (float)($sectBonuses['breakthrough'] ?? 0.0),
+                'cave_breakthrough_bonus' => (float)($caveBonuses['breakthrough'] ?? 0.0),
+                'bloodline_breakthrough_bonus' => (float)($bloodBonuses['breakthrough_pct'] ?? 0.0),
                 'tribulation_difficulty_preview' => $tribulationDifficultyPreview,
                 'tribulation_phase_count' => 3,
                 'pills' => $pills,

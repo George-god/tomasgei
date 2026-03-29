@@ -7,6 +7,7 @@ require_once __DIR__ . '/NotificationService.php';
 require_once __DIR__ . '/StatCalculator.php';
 require_once __DIR__ . '/TitleService.php';
 require_once __DIR__ . '/DaoRecord.php';
+require_once __DIR__ . '/BloodlineService.php';
 
 use Game\Config\Database;
 use PDO;
@@ -87,6 +88,8 @@ class TribulationService
             $attemptsUsed = max(0, (int)($preparation['breakthrough_attempts'] ?? $user['breakthrough_attempts'] ?? 0));
             $pillBonus = max(0.0, (float)($preparation['pill_bonus'] ?? 0.0));
             $sectBonus = max(0.0, (float)($preparation['sect_breakthrough_bonus'] ?? 0.0));
+            $caveBonus = max(0.0, (float)($preparation['cave_breakthrough_bonus'] ?? 0.0));
+            $bloodlineMitigation = (new BloodlineService())->getTribulationExtraMitigation($userId);
             $runeType = $preparation['rune_type'] ?? $user['active_scroll_type'] ?? null;
             $runeType = $runeType !== null && $runeType !== '' ? (string)$runeType : null;
             $difficultyRating = $this->calculateDifficultyRating($realmIdAfter, $attemptsUsed, $tribulationType, $user);
@@ -108,6 +111,8 @@ class TribulationService
                     $difficultyRating,
                     $pillBonus,
                     $sectBonus,
+                    $caveBonus,
+                    $bloodlineMitigation,
                     $runeType,
                     $user
                 );
@@ -163,6 +168,12 @@ class TribulationService
 
             if ($ownsTransaction) {
                 $db->commit();
+            }
+
+            try {
+                (new BloodlineService())->syncUnlocksForUser($userId);
+            } catch (\Throwable $e) {
+                error_log('Bloodline tribulation sync: ' . $e->getMessage());
             }
 
             return [
@@ -274,6 +285,8 @@ class TribulationService
         float $difficultyRating,
         float $pillBonus,
         float $sectBonus,
+        float $caveBonus,
+        float $bloodlineMitigation,
         ?string $runeType,
         array $user
     ): array {
@@ -284,9 +297,11 @@ class TribulationService
         $defenseReduction = min(0.28, $defense / 1800.0);
         $pillReduction = min(0.08, $pillBonus * 0.35);
         $sectReduction = min(0.08, $sectBonus * 2.0);
+        $caveReduction = min(0.06, $caveBonus * 1.75);
+        $bloodlineReduction = min(0.05, max(0.0, $bloodlineMitigation));
         $runeReduction = $this->getRuneMitigation($runeType, $tribulationType, $phaseNumber);
         $daoAffinityReduction = $this->getDaoTribulationMitigation($user, $tribulationType);
-        $totalReduction = min(0.60, $defenseReduction + $pillReduction + $sectReduction + $runeReduction + $daoAffinityReduction);
+        $totalReduction = min(0.60, $defenseReduction + $pillReduction + $sectReduction + $caveReduction + $bloodlineReduction + $runeReduction + $daoAffinityReduction);
 
         $finalDamage = (int)max(1, round($rawDamage * (1 - $totalReduction)));
         $chiAfter = max(0, $currentChi - $finalDamage);

@@ -11,6 +11,7 @@ require_once dirname(__DIR__) . '/services/PvpStaminaService.php';
 require_once dirname(__DIR__) . '/services/RealmService.php';
 require_once dirname(__DIR__) . '/services/EventService.php';
 require_once dirname(__DIR__) . '/services/DaoPathService.php';
+require_once dirname(__DIR__) . '/services/ArtifactService.php';
 
 use Game\Config\Database;
 use Game\Service\StatCalculator;
@@ -21,6 +22,7 @@ use Game\Service\PvpStaminaService;
 use Game\Service\RealmService;
 use Game\Service\EventService;
 use Game\Service\DaoPathService;
+use Game\Service\ArtifactService;
 
 session_start();
 
@@ -31,6 +33,12 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 }
 
 $userId = (int)$_SESSION['user_id'];
+
+try {
+    (new ArtifactService())->tryDailyEventArtifactRoll($userId);
+} catch (Throwable $e) {
+    error_log('Artifact daily event roll: ' . $e->getMessage());
+}
 
 // Handle breakthrough attempt (with optional pill)
 $breakthroughResult = null;
@@ -135,7 +143,7 @@ try {
     $spiritStones = 0;
     $finalStats = ['final' => ['attack' => 10, 'defense' => 10, 'chi' => 100, 'max_chi' => 100]];
     $cooldownStatus = ['can_cultivate' => true, 'cooldown_remaining' => 0];
-    $cultivationEfficiency = ['min_gain' => 10, 'max_gain' => 50, 'average_gain' => 30];
+    $cultivationEfficiency = ['min_gain' => 10, 'max_gain' => 50, 'average_gain' => 30, 'cave_cultivation_bonus' => 0.0, 'bloodline_cultivation_bonus' => 0.0];
     $breakthroughStatus = ['can_attempt' => false];
     $unreadCount = 0;
     $pvpStamina = 5;
@@ -229,13 +237,14 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
                 <?php $site_brand_compact = true; require_once dirname(__DIR__) . '/includes/site_brand.php'; ?>
                 <p class="text-gray-400 mt-0">Welcome back, <span class="text-cyan-300 font-semibold"><?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?></span></p>
             </div>
-            <div class="flex gap-4">
+            <div class="flex flex-wrap gap-2 sm:gap-4 justify-end">
                 <a href="notifications.php" class="relative px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-cyan-500/30 transition-all">
                     🔔 Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"><?php echo $unreadCount; ?></span>
                     <?php endif; ?>
                 </a>
+                <a href="character_sheet.php" title="Combat pipeline, gear, Dao, manuals, title, sect bonuses" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-violet-500/30 text-violet-300 transition-all">📋 Character</a>
                 <a href="logout.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-red-500/30 text-red-300 transition-all">Logout</a>
             </div>
         </div>
@@ -417,6 +426,17 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
                 </div>
                 <div class="mt-2 text-sm text-gray-400 text-center">
                     Expected gain: <?php echo $cultivationEfficiency['min_gain']; ?>-<?php echo $cultivationEfficiency['max_gain']; ?> chi
+                    <?php
+                    $cCave = (float)($cultivationEfficiency['cave_cultivation_bonus'] ?? 0.0);
+                    $cBlood = (float)($cultivationEfficiency['bloodline_cultivation_bonus'] ?? 0.0);
+                    if ($cCave > 0 || $cBlood > 0): ?>
+                        <span class="block text-cyan-500/90 text-xs mt-1">
+                            <?php if ($cCave > 0): ?>Cave +<?php echo number_format($cCave * 100, 1); ?>%<?php endif; ?>
+                            <?php if ($cCave > 0 && $cBlood > 0): ?> · <?php endif; ?>
+                            <?php if ($cBlood > 0): ?>Bloodline +<?php echo number_format($cBlood * 100, 1); ?>%<?php endif; ?>
+                            <span class="text-gray-500"> chi</span>
+                        </span>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -460,9 +480,17 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
                             Sect breakthrough bonus:
                             <span class="text-emerald-300 font-semibold">+<?php echo number_format((float)($breakthroughStatus['sect_breakthrough_bonus'] ?? 0.0) * 100, 1); ?>%</span>
                         </div>
+                        <div class="bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-gray-300">
+                            Cultivation cave:
+                            <span class="text-teal-300 font-semibold">+<?php echo number_format((float)($breakthroughStatus['cave_breakthrough_bonus'] ?? 0.0) * 100, 1); ?>%</span>
+                        </div>
+                        <div class="bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-gray-300">
+                            Active bloodline:
+                            <span class="text-rose-300 font-semibold">+<?php echo number_format((float)($breakthroughStatus['bloodline_breakthrough_bonus'] ?? 0.0) * 100, 1); ?>%</span>
+                        </div>
                     </div>
                     <div class="mt-3 text-xs text-gray-500 text-center">
-                        Pills, runes, and sect breakthrough bonuses all help you endure the tribulation. Base-roll failure: chi -15%, attempt counter +1.
+                        Pills, runes, sect, cave, and bloodline bonuses help the base breakthrough roll and tribulation phases. Base-roll failure: chi -15%, attempt counter +1.
                     </div>
                 <?php else: ?>
                     <button disabled class="w-full py-3 bg-gray-700 text-gray-400 font-semibold rounded-lg cursor-not-allowed">
@@ -475,7 +503,22 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
         <!-- Quick access: main activities -->
         <section class="mb-8">
             <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Quick access</h2>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <a href="bloodline.php" title="Bloodlines: unlock by feats, awaken for power" class="bg-gray-800/90 backdrop-blur-lg border border-rose-500/30 rounded-xl p-5 hover:border-rose-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🩸</div>
+                    <div class="font-semibold text-rose-300">Bloodline</div>
+                    <div class="text-xs text-gray-500 mt-1">Legacy &amp; awakening</div>
+                </a>
+                <a href="artifacts.php" title="Artifacts: equip relics and attune auras" class="bg-gray-800/90 backdrop-blur-lg border border-amber-500/30 rounded-xl p-5 hover:border-amber-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">✦</div>
+                    <div class="font-semibold text-amber-200">Artifacts</div>
+                    <div class="text-xs text-gray-500 mt-1">Sockets &amp; evolution</div>
+                </a>
+                <a href="cave.php" title="Personal cultivation cave: bonuses and formations" class="bg-gray-800/90 backdrop-blur-lg border border-teal-500/30 rounded-xl p-5 hover:border-teal-500/50 transition-all text-center transform hover:-translate-y-0.5">
+                    <div class="text-3xl mb-2">🗻</div>
+                    <div class="font-semibold text-teal-300">Cultivation Cave</div>
+                    <div class="text-xs text-gray-500 mt-1">Bonuses & arrays</div>
+                </a>
                 <a href="activities.php" title="Daily and weekly tasks and rewards" class="bg-gray-800/90 backdrop-blur-lg border border-rose-500/30 rounded-xl p-5 hover:border-rose-500/50 transition-all text-center transform hover:-translate-y-0.5">
                     <div class="text-3xl mb-2">📋</div>
                     <div class="font-semibold text-rose-300">Activities</div>

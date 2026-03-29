@@ -1,0 +1,5 @@
+# Local / deployment
+.env
+.env.*
+!.env.example
+*.log

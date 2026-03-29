@@ -8,6 +8,7 @@ require_once __DIR__ . '/RealmEffects.php';
 require_once __DIR__ . '/ActivityService.php';
 require_once __DIR__ . '/TitleService.php';
 require_once __DIR__ . '/SeasonService.php';
+require_once __DIR__ . '/BloodlineService.php';
 require_once __DIR__ . '/DaoTechniqueService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/../core/Cache.php';
@@ -278,6 +279,13 @@ class BattleService
             } catch (\Throwable $e) {
                 error_log('Season PvP: ' . $e->getMessage());
             }
+            try {
+                $bl = new BloodlineService();
+                $bl->syncUnlocksForUser($attackerId);
+                $bl->syncUnlocksForUser($defenderId);
+            } catch (\Throwable $e) {
+                error_log('Bloodline PvP sync: ' . $e->getMessage());
+            }
 
             return [
                 'success' => true,
@@ -343,7 +351,8 @@ class BattleService
         $dodgeBonus = $this->consumeTechniqueFloat($defenderTechniqueState, 'next_dodge_bonus');
         $damageReduction = $this->consumeTechniqueFloat($defenderTechniqueState, 'next_damage_reduction');
         $reflectBonus = $this->consumeTechniqueFloat($defenderTechniqueState, 'next_reflect_bonus');
-        $dodgeChance = self::DODGE_CHANCE_BASE + ($defenderRealmLevel * 0.005) + (float)($defenderStats['dao_dodge_bonus'] ?? 0.0) + $dodgeBonus;
+        $dodgeChance = self::DODGE_CHANCE_BASE + ($defenderRealmLevel * 0.005) + (float)($defenderStats['dao_dodge_bonus'] ?? 0.0)
+            + (float)($defenderStats['bloodline_dodge_bonus'] ?? 0.0) + (float)($defenderStats['artifact_dodge_bonus'] ?? 0.0) + $dodgeBonus;
         $npcDodge = $defenderNpcId !== null ? (float)($defenderStats['dodge_chance'] ?? 0.05) : 0;
         $dodgeChance = min(0.95, $dodgeChance + $npcDodge);
         $isDodged = (mt_rand(1, 10000) / 100) <= ($dodgeChance * 100);
@@ -385,16 +394,37 @@ class BattleService
             $techniqueSelfDamage = $techniqueResolution['self_damage'];
             $techniqueHealAmount = $techniqueResolution['heal_amount'];
         }
-        $isCritical = $this->isCriticalStrike();
+        $critChance = self::CRITICAL_STRIKE_CHANCE + (float)($attackerStats['bloodline_crit_chance_bonus'] ?? 0.0)
+            + (float)($attackerStats['artifact_crit_chance_bonus'] ?? 0.0);
+        $critChance = min(0.95, max(0.0, $critChance));
+        $isCritical = (mt_rand(1, 10000) / 10000.0) <= $critChance;
         if ($isCritical) {
             $baseDamage = (int)($baseDamage * self::CRITICAL_DAMAGE_MULTIPLIER);
         }
         if ((float)($attackerStats['dao_bonus_damage_pct'] ?? 0.0) > 0) {
             $baseDamage += (int)round($baseDamage * (float)$attackerStats['dao_bonus_damage_pct']);
         }
+        $blOut = (float)($attackerStats['bloodline_outgoing_damage_pct'] ?? 0.0);
+        if ($blOut > 0) {
+            $baseDamage = max(1, (int)round($baseDamage * (1 + $blOut)));
+        }
+        $artOut = (float)($attackerStats['artifact_outgoing_damage_pct'] ?? 0.0);
+        if ($artOut > 0) {
+            $baseDamage = max(1, (int)round($baseDamage * (1 + $artOut)));
+        }
+        if ($attackerId !== null && $defenderId !== null && $defenderNpcId === null) {
+            $mm = (new BloodlineService())->getMatchupOutgoingMultiplier($attackerId, $defenderId);
+            if (abs($mm - 1.0) > 0.0001) {
+                $baseDamage = max(1, (int)round($baseDamage * $mm));
+            }
+        }
         if ($damageReduction > 0) {
             $baseDamage = max(1, (int)round($baseDamage * (1 - min(0.75, $damageReduction))));
         }
+        $blDtm = (float)($defenderStats['bloodline_damage_taken_mult'] ?? 1.0);
+        $artDtm = (float)($defenderStats['artifact_damage_taken_mult'] ?? 1.0);
+        $dtm = max(0.35, min(1.0, $blDtm * $artDtm));
+        $baseDamage = max(1, (int)round($baseDamage * $dtm));
 
         $defenderChiAfter = max(0, $defenderChi - $baseDamage);
 
@@ -412,7 +442,10 @@ class BattleService
             $lifestealRoll = (mt_rand(1, 10000) / 100);
             if ($lifestealRoll <= (self::LIFESTEAL_CHANCE * 100)) {
                 $isLifesteal = true;
-                $lifestealAmount = (int)($baseDamage * self::LIFESTEAL_PERCENTAGE);
+                $lsPct = self::LIFESTEAL_PERCENTAGE + (float)($attackerStats['bloodline_lifesteal_bonus_pct'] ?? 0.0)
+                    + (float)($attackerStats['artifact_lifesteal_bonus_pct'] ?? 0.0);
+                $lsPct = max(0.0, min(0.95, $lsPct));
+                $lifestealAmount = (int)($baseDamage * $lsPct);
                 $attackerChi = min($attackerMaxChi, $attackerChi + $lifestealAmount);
             }
         }
@@ -433,8 +466,11 @@ class BattleService
         $counterattackDamage = 0;
         $isCounterattack = false;
         if ($baseDamage > 0 && !$revived) {
+            $counterChance = self::COUNTERATTACK_CHANCE + (float)($defenderStats['bloodline_counter_bonus'] ?? 0.0)
+                + (float)($defenderStats['artifact_counter_bonus'] ?? 0.0);
+            $counterChance = min(0.95, max(0.0, $counterChance));
             $counterRoll = (mt_rand(1, 10000) / 100);
-            if ($counterRoll <= (self::COUNTERATTACK_CHANCE * 100)) {
+            if ($counterRoll <= ($counterChance * 100)) {
                 $isCounterattack = true;
                 $counterattackDamage = (int)($baseDamage * 0.50);
                 $attackerChiAfter = max(0, $attackerChi - $counterattackDamage);
@@ -522,16 +558,6 @@ class BattleService
         
         // Minimum damage is 1
         return max(1, $damage);
-    }
-
-    /**
-     * Check if attack is a critical strike
-     * 
-     * @return bool True if critical strike
-     */
-    private function isCriticalStrike(): bool
-    {
-        return mt_rand(1, 100) <= (self::CRITICAL_STRIKE_CHANCE * 100);
     }
 
     /**

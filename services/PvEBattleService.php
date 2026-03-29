@@ -7,6 +7,7 @@ require_once __DIR__ . '/BattleEngine.php';
 require_once __DIR__ . '/DaoTechniqueService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/StatCalculator.php';
+require_once __DIR__ . '/BloodlineService.php';
 require_once __DIR__ . '/ActivityService.php';
 require_once __DIR__ . '/TitleService.php';
 
@@ -74,6 +75,15 @@ class PvEBattleService
             $daoReflectPct = (float)($userStats['final']['dao_reflect_damage_pct'] ?? 0.0);
             $daoSelfDamagePct = (float)($userStats['final']['dao_self_damage_pct'] ?? 0.0);
             $daoDodgeBonus = (float)($userStats['final']['dao_dodge_bonus'] ?? 0.0);
+            $blOut = (float)($userStats['final']['bloodline_outgoing_damage_pct'] ?? 0.0);
+            $artOut = (float)($userStats['final']['artifact_outgoing_damage_pct'] ?? 0.0);
+            $blTaken = (float)($userStats['final']['bloodline_damage_taken_mult'] ?? 1.0);
+            $artTaken = (float)($userStats['final']['artifact_damage_taken_mult'] ?? 1.0);
+            $dmgTakenMult = max(0.35, min(1.0, $blTaken * $artTaken));
+            $blDodge = (float)($userStats['final']['bloodline_dodge_bonus'] ?? 0.0);
+            $artDodge = (float)($userStats['final']['artifact_dodge_bonus'] ?? 0.0);
+            $blCrit = (float)($userStats['final']['bloodline_crit_chance_bonus'] ?? 0.0);
+            $artCrit = (float)($userStats['final']['artifact_crit_chance_bonus'] ?? 0.0);
 
             $db = Database::getConnection();
             $userRow = $this->getUserRow($db, $userId);
@@ -124,6 +134,16 @@ class PvEBattleService
                 if ($daoBonusDamagePct > 0) {
                     $userDamage += (int)round($userDamage * $daoBonusDamagePct);
                 }
+                if ($blOut > 0) {
+                    $userDamage = max(1, (int)round($userDamage * (1 + $blOut)));
+                }
+                if ($artOut > 0) {
+                    $userDamage = max(1, (int)round($userDamage * (1 + $artOut)));
+                }
+                $critChance = min(0.95, 0.10 + $blCrit + $artCrit);
+                if ((mt_rand(1, 10000) / 10000.0) <= $critChance) {
+                    $userDamage = (int)round($userDamage * 1.5);
+                }
                 $npcHp = max(0, $npcHp - $userDamage);
                 if ($daoHealPct > 0) {
                     $userChi = min($userMaxChi, $userChi + (int)round($userDamage * $daoHealPct));
@@ -153,7 +173,8 @@ class PvEBattleService
                 if ($temporaryDodgeBonus > 0) {
                     $techniqueState['next_dodge_bonus'] = 0.0;
                 }
-                if (($daoDodgeBonus + $temporaryDodgeBonus) > 0 && (mt_rand(1, 10000) / 10000.0) <= ($daoDodgeBonus + $temporaryDodgeBonus)) {
+                $dodgeRoll = $daoDodgeBonus + $blDodge + $artDodge + $temporaryDodgeBonus;
+                if ($dodgeRoll > 0 && (mt_rand(1, 10000) / 10000.0) <= $dodgeRoll) {
                     $npcDamage = 0;
                 } else {
                     $npcDamage = BattleEngine::simpleDamage($npcAttack, $userDefense);
@@ -163,6 +184,7 @@ class PvEBattleService
                     $techniqueState['next_damage_reduction'] = 0.0;
                     $npcDamage = max(0, (int)round($npcDamage * (1 - min(0.75, $temporaryReduction))));
                 }
+                $npcDamage = max(0, (int)round($npcDamage * $dmgTakenMult));
                 $userChi = max(0, $userChi - $npcDamage);
                 if ($daoReflectPct > 0 && $npcDamage > 0) {
                     $npcHp = max(0, $npcHp - (int)round($npcDamage * $daoReflectPct));
@@ -285,6 +307,15 @@ class PvEBattleService
             $daoReflectPct = (float)($userStats['final']['dao_reflect_damage_pct'] ?? 0.0);
             $daoSelfDamagePct = (float)($userStats['final']['dao_self_damage_pct'] ?? 0.0);
             $daoDodgeBonus = (float)($userStats['final']['dao_dodge_bonus'] ?? 0.0);
+            $blOut = (float)($userStats['final']['bloodline_outgoing_damage_pct'] ?? 0.0);
+            $artOut = (float)($userStats['final']['artifact_outgoing_damage_pct'] ?? 0.0);
+            $blTaken = (float)($userStats['final']['bloodline_damage_taken_mult'] ?? 1.0);
+            $artTaken = (float)($userStats['final']['artifact_damage_taken_mult'] ?? 1.0);
+            $dmgTakenMult = max(0.35, min(1.0, $blTaken * $artTaken));
+            $blDodge = (float)($userStats['final']['bloodline_dodge_bonus'] ?? 0.0);
+            $artDodge = (float)($userStats['final']['artifact_dodge_bonus'] ?? 0.0);
+            $blCrit = (float)($userStats['final']['bloodline_crit_chance_bonus'] ?? 0.0);
+            $artCrit = (float)($userStats['final']['artifact_crit_chance_bonus'] ?? 0.0);
 
             $db = Database::getConnection();
             $userRow = $this->getUserRow($db, $userId);
@@ -331,6 +362,16 @@ class PvEBattleService
                 if ($daoBonusDamagePct > 0) {
                     $userDamage += (int)round($userDamage * $daoBonusDamagePct);
                 }
+                if ($blOut > 0) {
+                    $userDamage = max(1, (int)round($userDamage * (1 + $blOut)));
+                }
+                if ($artOut > 0) {
+                    $userDamage = max(1, (int)round($userDamage * (1 + $artOut)));
+                }
+                $critChance = min(0.95, 0.10 + $blCrit + $artCrit);
+                if ((mt_rand(1, 10000) / 10000.0) <= $critChance) {
+                    $userDamage = (int)round($userDamage * 1.5);
+                }
                 $enemyHp = max(0, $enemyHp - $userDamage);
                 if ($daoHealPct > 0) {
                     $userChi = min($userMaxChi, $userChi + (int)round($userDamage * $daoHealPct));
@@ -360,7 +401,8 @@ class PvEBattleService
                 if ($temporaryDodgeBonus > 0) {
                     $techniqueState['next_dodge_bonus'] = 0.0;
                 }
-                if (($daoDodgeBonus + $temporaryDodgeBonus) > 0 && (mt_rand(1, 10000) / 10000.0) <= ($daoDodgeBonus + $temporaryDodgeBonus)) {
+                $dodgeRoll = $daoDodgeBonus + $blDodge + $artDodge + $temporaryDodgeBonus;
+                if ($dodgeRoll > 0 && (mt_rand(1, 10000) / 10000.0) <= $dodgeRoll) {
                     $enemyDamage = 0;
                 } else {
                     $enemyDamage = BattleEngine::simpleDamage($enemyAttack, $userDefense);
@@ -370,6 +412,7 @@ class PvEBattleService
                     $techniqueState['next_damage_reduction'] = 0.0;
                     $enemyDamage = max(0, (int)round($enemyDamage * (1 - min(0.75, $temporaryReduction))));
                 }
+                $enemyDamage = max(0, (int)round($enemyDamage * $dmgTakenMult));
                 $userChi = max(0, $userChi - $enemyDamage);
                 if ($daoReflectPct > 0 && $enemyDamage > 0) {
                     $enemyHp = max(0, $enemyHp - (int)round($enemyDamage * $daoReflectPct));

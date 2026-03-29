@@ -6,6 +6,8 @@ namespace Game\Service;
 require_once __DIR__ . '/CultivationManualService.php';
 require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/PvEBattleService.php';
+require_once __DIR__ . '/BloodlineService.php';
+require_once __DIR__ . '/ArtifactService.php';
 
 use Game\Config\Database;
 use PDO;
@@ -224,6 +226,11 @@ class DungeonService
                         $db
                     );
                     $db->commit();
+                    try {
+                        (new BloodlineService())->syncUnlocksForUser($userId);
+                    } catch (\Throwable $e) {
+                        error_log('Bloodline dungeon sync: ' . $e->getMessage());
+                    }
                     return [
                         'success' => true,
                         'message' => 'Dungeon completed! Boss defeated and rewards granted.',
@@ -413,11 +420,22 @@ class DungeonService
     {
         $gold = max(50, 200 * $difficulty);
         $spiritStones = max(1, 2 * $difficulty);
+        try {
+            $gold = (int)max(1, round($gold * (new BloodlineService())->getDungeonGoldMultiplier($userId)));
+        } catch (\Throwable $e) {
+            error_log('Bloodline dungeon gold: ' . $e->getMessage());
+        }
 
         $rewardService = new RewardService();
         $rewardService->grantCurrency($db, $userId, $gold, $spiritStones);
         $manualService = new CultivationManualService();
         $manualReward = $manualService->awardDungeonManual($db, $userId, $difficulty);
+
+        try {
+            (new ArtifactService())->rollDungeonArtifact($db, $userId, $difficulty);
+        } catch (\Throwable $e) {
+            error_log('Dungeon artifact roll: ' . $e->getMessage());
+        }
 
         return [
             'gold' => $gold,

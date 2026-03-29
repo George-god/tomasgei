@@ -45,6 +45,40 @@ class TitleService
         }
     }
 
+    /**
+     * Equipped title row for character sheet UI.
+     *
+     * @return array{id: int, name: string, attack_pct: float, defense_pct: float, max_chi_pct: float}|null
+     */
+    public function getEquippedTitleDisplay(int $userId): ?array
+    {
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("
+                SELECT t.id, t.name, t.bonus_attack_pct, t.bonus_defense_pct, t.bonus_max_chi_pct
+                FROM users u
+                JOIN titles t ON t.id = u.equipped_title_id
+                WHERE u.id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                return null;
+            }
+            return [
+                'id' => (int)$row['id'],
+                'name' => (string)$row['name'],
+                'attack_pct' => (float)$row['bonus_attack_pct'],
+                'defense_pct' => (float)$row['bonus_defense_pct'],
+                'max_chi_pct' => (float)$row['bonus_max_chi_pct'],
+            ];
+        } catch (PDOException $e) {
+            error_log('TitleService::getEquippedTitleDisplay ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function onPvpWin(int $userId): void
     {
         $this->checkAndUnlockTitles($userId);

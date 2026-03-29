@@ -53,7 +53,7 @@ function h(string $s): string
 
         <?php if ($season === null): ?>
             <div class="bg-gray-800/80 border border-amber-500/30 rounded-xl p-6 text-gray-300">
-                <p class="mb-2">No active season yet. Run <code class="text-amber-400">database_seasons.sql</code> and visit again (a default season is created automatically).</p>
+                <p class="mb-2">No active season yet. Ensure the DB was initialized with <code class="text-amber-400">database_full.sql</code> or <code class="text-amber-400">database_schema.sql</code> and visit again (a default season is created automatically).</p>
             </div>
         <?php else: ?>
             <div class="bg-gray-800/60 border border-violet-500/25 rounded-xl p-4 mb-6 text-sm text-gray-400">

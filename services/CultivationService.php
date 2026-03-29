@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Game\Service;
 
 require_once __DIR__ . '/SeasonService.php';
+require_once __DIR__ . '/CaveService.php';
+require_once __DIR__ . '/BloodlineService.php';
 
 use Game\Config\Database;
 use PDOException;
@@ -55,7 +57,10 @@ class CultivationService
             $maxChi = (int)$user['max_chi'];
 
             $chiGain = $this->calculateChiGain($level);
-            $chiGain = max(1, $chiGain);
+            $caveBonuses = (new CaveService())->getEffectiveBonuses($userId);
+            $bloodBonuses = (new BloodlineService())->getPassiveBonuses($userId);
+            $cultMult = 1.0 + (float)($caveBonuses['cultivation'] ?? 0.0) + (float)($bloodBonuses['cultivation_pct'] ?? 0.0);
+            $chiGain = (int)max(1, floor($chiGain * $cultMult));
             $newChi = min(max(0, $currentChi) + $chiGain, max(0, $maxChi));
             $newChi = max(0, $newChi);
             $actualGain = $newChi - max(0, $currentChi);
@@ -239,19 +244,26 @@ class CultivationService
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
             if (!$user) {
-                return ['min_gain' => 0, 'max_gain' => 0, 'average_gain' => 0, 'level' => 1];
+                return ['min_gain' => 0, 'max_gain' => 0, 'average_gain' => 0, 'level' => 1, 'cave_cultivation_bonus' => 0.0, 'bloodline_cultivation_bonus' => 0.0];
             }
             $level = (int)$user['level'];
             $minGain = self::CHI_RAND_MIN + $level * self::LEVEL_CHI_FACTOR;
             $maxGain = self::CHI_RAND_MAX + $level * self::LEVEL_CHI_FACTOR;
+            $cave = (new CaveService())->getEffectiveBonuses($userId);
+            $blood = (new BloodlineService())->getPassiveBonuses($userId);
+            $mult = 1.0 + (float)($cave['cultivation'] ?? 0.0) + (float)($blood['cultivation_pct'] ?? 0.0);
+            $minGain = (int)max(1, floor($minGain * $mult));
+            $maxGain = (int)max(1, floor($maxGain * $mult));
             return [
                 'min_gain' => $minGain,
                 'max_gain' => $maxGain,
-                'average_gain' => (int)round(($minGain + $maxGain) / 2),
-                'level' => $level
+                'average_gain' => (int)max(1, round(($minGain + $maxGain) / 2)),
+                'level' => $level,
+                'cave_cultivation_bonus' => (float)($cave['cultivation'] ?? 0.0),
+                'bloodline_cultivation_bonus' => (float)($blood['cultivation_pct'] ?? 0.0),
             ];
         } catch (PDOException $e) {
-            return ['min_gain' => 0, 'max_gain' => 0, 'average_gain' => 0, 'level' => 1];
+            return ['min_gain' => 0, 'max_gain' => 0, 'average_gain' => 0, 'level' => 1, 'cave_cultivation_bonus' => 0.0, 'bloodline_cultivation_bonus' => 0.0];
         }
     }
 }
