@@ -8,6 +8,7 @@ require_once __DIR__ . '/DaoRecord.php';
 require_once __DIR__ . '/PvEBattleService.php';
 require_once __DIR__ . '/BloodlineService.php';
 require_once __DIR__ . '/ArtifactService.php';
+require_once __DIR__ . '/RewardService.php';
 
 use Game\Config\Database;
 use PDO;

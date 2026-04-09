@@ -52,9 +52,10 @@ class BloodlineService
             return self::$tablesOk;
         }
         try {
-            $db->query('SELECT 1 FROM bloodlines LIMIT 1');
+            $st = $db->prepare('SELECT 1 FROM bloodlines LIMIT 1');
+            $st->execute();
             self::$tablesOk = true;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             self::$tablesOk = false;
         }
         return self::$tablesOk;
@@ -66,10 +67,12 @@ class BloodlineService
             return self::$evolutionOk;
         }
         try {
-            $db->query('SELECT 1 FROM bloodline_evolution LIMIT 1');
-            $db->query('SELECT evolution_tier FROM user_bloodlines LIMIT 1');
+            $s1 = $db->prepare('SELECT 1 FROM bloodline_evolution LIMIT 1');
+            $s1->execute();
+            $s2 = $db->prepare('SELECT evolution_tier FROM user_bloodlines LIMIT 1');
+            $s2->execute();
             self::$evolutionOk = true;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             self::$evolutionOk = false;
         }
         return self::$evolutionOk;
@@ -81,9 +84,10 @@ class BloodlineService
             return self::$abilitiesOk;
         }
         try {
-            $db->query('SELECT 1 FROM bloodline_abilities LIMIT 1');
+            $st = $db->prepare('SELECT 1 FROM bloodline_abilities LIMIT 1');
+            $st->execute();
             self::$abilitiesOk = true;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             self::$abilitiesOk = false;
         }
         return self::$abilitiesOk;
@@ -283,6 +287,28 @@ class BloodlineService
     }
 
     /**
+     * Load catalog rows without chaining query()->fetchAll() (query() can return false; Error is not PDOException).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadBloodlinesCatalogRows(PDO $db, bool $withAbilities): array
+    {
+        if ($withAbilities) {
+            $sql = 'SELECT b.*, ba.ability_key AS catalog_ability_key, ba.name AS catalog_ability_name, ba.description AS catalog_ability_description,
+                            ba.resonance_dao_element AS catalog_resonance_element
+                     FROM bloodlines b
+                     LEFT JOIN bloodline_abilities ba ON ba.bloodline_id = b.id
+                     ORDER BY b.sort_order ASC, b.id ASC';
+        } else {
+            $sql = 'SELECT * FROM bloodlines ORDER BY sort_order ASC, id ASC';
+        }
+        $st = $db->prepare($sql);
+        $st->execute();
+
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Refresh unlocks from live stats. Returns number of newly granted bloodlines.
      */
     public function syncUnlocksForUser(int $userId): int
@@ -298,7 +324,7 @@ class BloodlineService
             $stmt->execute([$userId]);
             $hasActive = (bool)$stmt->fetch();
 
-            $catalog = $db->query('SELECT * FROM bloodlines ORDER BY sort_order ASC, id ASC')->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $catalog = $this->loadBloodlinesCatalogRows($db, false);
             $newCount = 0;
 
             foreach ($catalog as $bl) {
@@ -333,7 +359,7 @@ class BloodlineService
             }
 
             return $newCount;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             error_log('BloodlineService::syncUnlocksForUser ' . $e->getMessage());
             return 0;
         }
@@ -535,17 +561,7 @@ class BloodlineService
             $this->syncUnlocksForUser($userId);
             $progress = $this->fetchProgress($db, $userId);
             $abilitiesOn = $this->abilitiesFeatureAvailable($db);
-            if ($abilitiesOn) {
-                $catalog = $db->query(
-                    'SELECT b.*, ba.ability_key AS catalog_ability_key, ba.name AS catalog_ability_name, ba.description AS catalog_ability_description,
-                            ba.resonance_dao_element AS catalog_resonance_element
-                     FROM bloodlines b
-                     LEFT JOIN bloodline_abilities ba ON ba.bloodline_id = b.id
-                     ORDER BY b.sort_order ASC, b.id ASC'
-                )->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            } else {
-                $catalog = $db->query('SELECT * FROM bloodlines ORDER BY sort_order ASC, id ASC')->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            }
+            $catalog = $this->loadBloodlinesCatalogRows($db, $abilitiesOn);
 
             $playerLevel = 1;
             $daoElement = null;
@@ -948,13 +964,15 @@ class BloodlineService
     private function rollMutationTemplateId(PDO $db): int
     {
         try {
-            $ids = $db->query('SELECT id FROM bloodline_mutation_templates ORDER BY id ASC')->fetchAll(PDO::FETCH_COLUMN);
+            $st = $db->prepare('SELECT id FROM bloodline_mutation_templates ORDER BY id ASC');
+            $st->execute();
+            $ids = $st->fetchAll(PDO::FETCH_COLUMN);
             if (!$ids) {
                 return 1;
             }
             /** @var array<int, string> $ids */
             return (int)$ids[array_rand($ids)];
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             return 1;
         }
     }

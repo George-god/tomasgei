@@ -45,15 +45,54 @@ class SectService
     ];
 
     /**
+     * Normalize rank from sect_members (supports legacy rows where only `role` is set).
+     */
+    private function resolveMemberRank(array $row): string
+    {
+        $rank = isset($row['rank']) ? trim((string)$row['rank']) : '';
+        if ($rank !== '') {
+            return $rank;
+        }
+        $role = isset($row['role']) ? trim((string)$row['role']) : '';
+        return match ($role) {
+            'leader' => 'leader',
+            'elder' => 'elder',
+            'disciple' => 'outer_disciple',
+            default => 'outer_disciple',
+        };
+    }
+
+    /**
+     * Fix inconsistent data: sect exists with leader_user_id but no sect_members row for that user.
+     */
+    private function repairMissingLeaderMembership(PDO $db, int $userId): void
+    {
+        try {
+            $st = $db->prepare('SELECT id FROM sects WHERE leader_user_id = ? LIMIT 1');
+            $st->execute([$userId]);
+            $sid = $st->fetchColumn();
+            if ($sid === false || $sid === null) {
+                return;
+            }
+            $db->prepare(
+                'INSERT IGNORE INTO sect_members (sect_id, user_id, rank, role) VALUES (?, ?, ?, ?)'
+            )->execute([(int)$sid, $userId, 'leader', 'leader']);
+        } catch (\Throwable $e) {
+            error_log('SectService::repairMissingLeaderMembership ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get sect and membership for a user, or null if not in a sect.
      */
     public function getSectByUserId(int $userId): ?array
     {
         try {
             $db = Database::getConnection();
+            // Avoid selecting columns that may be missing on older DBs (e.g. sect_reputation).
             $stmt = $db->prepare("
-                SELECT s.id, s.name, s.leader_user_id, s.tier, s.sect_exp, s.sect_reputation, s.created_at,
-                       m.rank
+                SELECT s.id, s.name, s.leader_user_id, s.tier, s.sect_exp, s.created_at,
+                       m.rank, m.role
                 FROM sect_members m
                 JOIN sects s ON s.id = m.sect_id
                 WHERE m.user_id = ?
@@ -62,20 +101,44 @@ class SectService
             $stmt->execute([$userId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
+                $this->repairMissingLeaderMembership($db, $userId);
+                $stmt->execute([$userId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$row) {
                 return null;
             }
+
+            $row['sect_reputation'] = 1000;
+            try {
+                $repStmt = $db->prepare('SELECT sect_reputation FROM sects WHERE id = ? LIMIT 1');
+                $repStmt->execute([(int)$row['id']]);
+                $repRow = $repStmt->fetch(PDO::FETCH_ASSOC);
+                if ($repRow !== false && array_key_exists('sect_reputation', $repRow)) {
+                    $row['sect_reputation'] = (int)$repRow['sect_reputation'];
+                }
+            } catch (\Throwable $e) {
+                error_log('SectService::getSectByUserId sect_reputation ' . $e->getMessage());
+            }
+
             $tier = (string)$row['tier'];
-            $rank = (string)($row['rank'] ?? 'outer_disciple');
+            $rank = $this->resolveMemberRank($row);
+            $row['rank'] = $rank;
             $row['role'] = $rank;
             $row['tier_bonuses'] = self::TIER_BONUSES[$tier] ?? self::TIER_BONUSES['third'];
             $row['rank_bonuses'] = self::RANK_BONUSES[$rank] ?? self::RANK_BONUSES['outer_disciple'];
-            $baseBonuses = (new SectBaseService())->getPassiveBonusesForSect((int)$row['id']);
+            try {
+                $baseBonuses = (new SectBaseService())->getPassiveBonusesForSect((int)$row['id']);
+            } catch (\Throwable $e) {
+                error_log('SectService::getSectByUserId base bonuses ' . $e->getMessage());
+                $baseBonuses = ['cultivation_speed' => 0.0, 'gold_gain' => 0.0, 'breakthrough' => 0.0];
+            }
             $row['base_bonuses'] = $baseBonuses;
             $row['bonuses'] = $this->mergeBonuses($this->mergeBonuses($row['tier_bonuses'], $row['rank_bonuses']), $baseBonuses);
             $row['member_count'] = $this->getMemberCount($db, (int)$row['id']);
             return $row;
-        } catch (PDOException $e) {
-            error_log("SectService::getSectByUserId " . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('SectService::getSectByUserId ' . $e->getMessage());
             return null;
         }
     }
@@ -177,7 +240,7 @@ class SectService
                 ->execute([$name, $userId]);
             $sectId = (int)$db->lastInsertId();
 
-            $db->prepare("INSERT INTO sect_members (sect_id, user_id, rank) VALUES (?, ?, 'leader')")
+            $db->prepare("INSERT INTO sect_members (sect_id, user_id, rank, role) VALUES (?, ?, 'leader', 'leader')")
                 ->execute([$sectId, $userId]);
 
             (new SectBaseService())->initializeSectBase($sectId, $name, $db);
@@ -214,7 +277,7 @@ class SectService
                 return ['success' => false, 'message' => 'Sect not found.'];
             }
 
-            $db->prepare("INSERT INTO sect_members (sect_id, user_id, rank) VALUES (?, ?, 'outer_disciple')")
+            $db->prepare("INSERT INTO sect_members (sect_id, user_id, rank, role) VALUES (?, ?, 'outer_disciple', 'disciple')")
                 ->execute([$sectId, $userId]);
 
             (new SectBaseService())->synchronizeNpcPopulation($sectId, $db);
@@ -458,13 +521,31 @@ class SectService
         try {
             $db = Database::getConnection();
             $stmt = $db->prepare("
-                SELECT m.id, m.user_id, m.rank, m.rank AS role, m.joined_at,
+                SELECT m.id, m.user_id,
+                       COALESCE(NULLIF(TRIM(m.rank), ''),
+                         CASE m.role
+                           WHEN 'leader' THEN 'leader'
+                           WHEN 'elder' THEN 'elder'
+                           WHEN 'disciple' THEN 'outer_disciple'
+                           ELSE 'outer_disciple'
+                         END
+                       ) AS rank,
+                       m.rank AS rank_raw,
+                       m.role,
+                       m.joined_at,
                        COALESCE(m.contribution, 0) AS contribution, u.username, u.realm_id, r.name AS realm_name
                 FROM sect_members m
                 JOIN users u ON u.id = m.user_id
                 LEFT JOIN realms r ON r.id = u.realm_id
                 WHERE m.sect_id = ?
-                ORDER BY FIELD(m.rank, 'leader', 'elder', 'core_disciple', 'inner_disciple', 'outer_disciple'),
+                ORDER BY FIELD(COALESCE(NULLIF(TRIM(m.rank), ''),
+                         CASE m.role
+                           WHEN 'leader' THEN 'leader'
+                           WHEN 'elder' THEN 'elder'
+                           WHEN 'disciple' THEN 'outer_disciple'
+                           ELSE 'outer_disciple'
+                         END
+                       ), 'leader', 'elder', 'core_disciple', 'inner_disciple', 'outer_disciple'),
                          contribution DESC, m.joined_at ASC
             ");
             $stmt->execute([$sectId]);

@@ -206,7 +206,7 @@ class SeasonService
                 'leaderboard' => $ranked,
                 'my_row' => $my,
             ];
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             error_log('SeasonService::getPageData ' . $e->getMessage());
             return [
                 'season' => $season,
@@ -236,13 +236,14 @@ class SeasonService
         try {
             $db->beginTransaction();
 
-            $stmt = $db->query("
+            $stmt = $db->prepare("
                 SELECT id, name, slug, weight_pvp, weight_boss, weight_cultivation, weight_sect
                 FROM seasons
                 WHERE status = 'active' AND ends_at < NOW()
                 ORDER BY id ASC
                 FOR UPDATE
             ");
+            $stmt->execute();
             $ended = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             foreach ($ended as $season) {
@@ -255,7 +256,7 @@ class SeasonService
             }
 
             $db->commit();
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
             }
@@ -276,7 +277,7 @@ class SeasonService
     {
         try {
             $db = Database::getConnection();
-            $stmt = $db->query("
+            $stmt = $db->prepare("
                 SELECT id, name, slug, starts_at, ends_at, status,
                        weight_pvp, weight_boss, weight_cultivation, weight_sect
                 FROM seasons
@@ -284,9 +285,10 @@ class SeasonService
                 ORDER BY id DESC
                 LIMIT 1
             ");
+            $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             error_log('SeasonService::getActiveSeason ' . $e->getMessage());
             return null;
         }
@@ -305,7 +307,8 @@ class SeasonService
     {
         try {
             $db = Database::getConnection();
-            $stmt = $db->query("SELECT id FROM seasons WHERE status = 'active' AND ends_at > NOW() LIMIT 1");
+            $stmt = $db->prepare('SELECT id FROM seasons WHERE status = ? AND ends_at > NOW() LIMIT 1');
+            $stmt->execute(['active']);
             if ($stmt->fetch()) {
                 return;
             }
@@ -316,7 +319,7 @@ class SeasonService
                 VALUES (?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 28 DAY), 'active', 1.000000, 0.010000, 1.000000, 5.000000)
             ");
             $ins->execute([$name, $slug]);
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             error_log('SeasonService::ensureActiveSeasonExists ' . $e->getMessage());
         }
     }

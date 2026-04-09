@@ -12,6 +12,7 @@ require_once dirname(__DIR__) . '/services/RealmService.php';
 require_once dirname(__DIR__) . '/services/EventService.php';
 require_once dirname(__DIR__) . '/services/DaoPathService.php';
 require_once dirname(__DIR__) . '/services/ArtifactService.php';
+require_once dirname(__DIR__) . '/includes/realm_sprite.php';
 
 use Game\Config\Database;
 use Game\Service\StatCalculator;
@@ -163,6 +164,7 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Cultivation Journey</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <?php realm_sprite_head_link(); ?>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body {
@@ -221,16 +223,55 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
         body.realm-4 .realm-bg-accent .realm-blur-2 { background: rgba(219, 39, 119, 0.08); }
         body.realm-5 .realm-bg-accent .realm-blur-1 { background: rgba(250, 204, 21, 0.1); }
         body.realm-5 .realm-bg-accent .realm-blur-2 { background: rgba(234, 179, 8, 0.1); }
+
+        /* Full-page grid: short hero strip + tinted scrim for readable text */
+        body.dashboard-main-page {
+            background-color: #070d16;
+            background-image: linear-gradient(180deg, #0a1424 0%, #070d16 28%, #060a12 100%);
+        }
+        /* Tall enough to run behind dashboard down toward “More pages” / admin tab */
+        .dashboard-ascension-strip {
+            height: min(70vh, 720px);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 640px) {
+            .dashboard-ascension-strip {
+                height: min(74vh, 840px);
+            }
+        }
+        @media (min-width: 1024px) {
+            .dashboard-ascension-strip {
+                height: min(78vh, 980px);
+            }
+        }
+        .dashboard-ascension-scrim {
+            background: linear-gradient(
+                to bottom,
+                rgba(15, 23, 42, 0.78) 0%,
+                rgba(8, 47, 73, 0.42) 38%,
+                rgba(49, 46, 129, 0.38) 62%,
+                rgba(15, 23, 42, 0.9) 100%
+            ),
+            linear-gradient(to right, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.18) 45%, transparent 78%);
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 min-h-screen realm-<?php echo (int)$realmId; ?>">
-    <!-- Background accent by realm (subtle) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none realm-bg-accent" aria-hidden="true">
+<body class="dashboard-main-page min-h-screen realm-<?php echo (int)$realmId; ?> text-gray-100">
+    <!-- Background accent by realm (subtle) — fixed between art and UI -->
+    <div class="fixed inset-0 z-[5] overflow-hidden pointer-events-none realm-bg-accent" aria-hidden="true">
         <div class="realm-blur-1 absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse"></div>
         <div class="realm-blur-2 absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
     </div>
 
-    <div class="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+    <div class="relative grid min-h-screen grid-cols-1">
+        <div class="col-start-1 row-start-1 relative z-0 isolate w-full select-none pointer-events-none" aria-hidden="true">
+            <div class="dashboard-ascension-strip relative w-full overflow-hidden rounded-b-2xl">
+                <img src="../assets/images/dashboard-ascension-bg.jpg" alt="" class="h-full w-full object-cover object-top" width="338" height="1024" decoding="async">
+                <div class="dashboard-ascension-scrim absolute inset-0"></div>
+            </div>
+        </div>
+        <div class="relative z-10 col-start-1 row-start-1 flex min-h-screen flex-col">
+    <div class="container mx-auto flex-1 px-4 py-6 max-w-7xl">
         <!-- Header -->
         <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
             <div class="flex items-center gap-4 flex-wrap">
@@ -266,21 +307,35 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
         </div>
         <?php endif; ?>
 
-        <!-- Player card (realm badge + chi + stamina + stats) with aura -->
-        <div class="player-card-aura rounded-2xl border border-gray-700/50 bg-gray-900/20 p-6 mb-8">
-        <!-- Realm Badge: name only (no ID), dynamic class by realm_id -->
-        <div class="mb-6 flex justify-center">
-            <div class="realm-badge realm-badge-<?php echo (int)$realmId; ?> border-2 rounded-xl px-8 py-4">
-                <div class="text-center">
-                    <div class="text-2xl font-bold mb-1"><?php echo htmlspecialchars($realmName, ENT_QUOTES, 'UTF-8'); ?></div>
+        <!-- Realm banner: custom art for realms 1–5; sprite fallback if realm_id is unusual -->
+        <div class="mb-5 flex justify-center">
+            <div class="realm-window realm-badge realm-badge-<?php echo (int)$realmId; ?> border-2 rounded-xl w-full max-w-sm aspect-[341/141] overflow-hidden shadow-lg flex items-center justify-center">
+                <?php if ($realmId === 1): ?>
+                    <div class="realm-window__bg realm-window__bg--qi-refining" aria-hidden="true"></div>
+                <?php elseif ($realmId === 2): ?>
+                    <div class="realm-window__bg realm-window__bg--foundation" aria-hidden="true"></div>
+                <?php elseif ($realmId === 3): ?>
+                    <div class="realm-window__bg realm-window__bg--core-formation" aria-hidden="true"></div>
+                <?php elseif ($realmId === 4): ?>
+                    <div class="realm-window__bg realm-window__bg--nascent-soul" aria-hidden="true"></div>
+                <?php elseif ($realmId === 5): ?>
+                    <div class="realm-window__bg realm-window__bg--soul-transformation" aria-hidden="true"></div>
+                <?php else: ?>
+                    <div class="realm-window__bg" style="background-position: <?php echo htmlspecialchars(realm_sprite_background_position(realm_sprite_clamp_realm_id($realmId)), ENT_QUOTES, 'UTF-8'); ?>;" aria-hidden="true"></div>
+                <?php endif; ?>
+                <div class="realm-window__scrim" aria-hidden="true"></div>
+                <div class="realm-window__content text-center w-full px-4 py-4">
+                    <div class="text-2xl font-bold mb-1 realm-window-title"><?php echo htmlspecialchars($realmName, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php if ($realmDescription !== ''): ?>
-                        <p class="text-sm text-gray-400 max-w-md mt-1"><?php echo htmlspecialchars($realmDescription, ENT_QUOTES, 'UTF-8'); ?></p>
+                        <p class="text-sm text-gray-200 max-w-md mt-1 mx-auto realm-window-desc"><?php echo htmlspecialchars($realmDescription, ENT_QUOTES, 'UTF-8'); ?></p>
                     <?php endif; ?>
-                    <div class="text-sm text-gray-500 mt-2">Level <span id="stat-level"><?php echo $level; ?></span></div>
+                    <div class="text-sm text-gray-200 mt-2 realm-window-level">Level <span id="stat-level"><?php echo (int)$level; ?></span></div>
                 </div>
             </div>
         </div>
 
+        <!-- Player card (progress, chi, stamina, stats) with aura -->
+        <div class="player-card-aura rounded-2xl border border-gray-700/50 bg-gray-900/20 p-6 mb-8">
         <!-- Realm progress bar: required level, highlight when breakthrough available -->
         <div class="mb-6 realm-progress-wrap <?php echo !empty($realmBreakthrough['available']) ? 'breakthrough-available' : ''; ?>">
             <div class="bg-gray-800/90 backdrop-blur border border-gray-600 rounded-xl p-4">
@@ -684,6 +739,8 @@ $chiPercentage = $maxChi > 0 ? ($chi / $maxChi) * 100 : 0;
                 </div>
             </details>
         </section>
+    </div>
+        </div>
     </div>
     <script src="../cultivation.js"></script>
 </body>

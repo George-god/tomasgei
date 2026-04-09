@@ -336,7 +336,8 @@ class TitleService
                     : null;
             }
 
-            $stmt = $db->query("SELECT * FROM titles ORDER BY sort_order ASC, id ASC");
+            $stmt = $db->prepare('SELECT * FROM titles ORDER BY sort_order ASC, id ASC');
+            $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $unlockedStmt = $db->prepare("SELECT title_id FROM user_titles WHERE user_id = ?");
             $unlockedStmt->execute([$userId]);
@@ -373,7 +374,7 @@ class TitleService
                 ];
             }
             return ['titles' => $out, 'stats' => $stats, 'equipped_id' => $equippedId];
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             error_log('TitleService::getTitlesPageData ' . $e->getMessage());
             return ['titles' => [], 'stats' => $stats, 'equipped_id' => null];
         }

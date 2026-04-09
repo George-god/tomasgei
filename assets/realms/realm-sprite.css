@@ -1,0 +1,99 @@
+/*
+ * Realm card: sprite sheet realm-sprite.png (1024×282 JPEG, 3×2 cells).
+ * Custom banners 1–5; sprite sheet only as fallback (realm_sprite.php positions).
+ */
+.realm-window {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: #1a0f2e !important;
+}
+
+.realm-window.realm-badge {
+    background: #1a0f2e !important;
+}
+
+.realm-window__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url("realm-sprite.png");
+    background-size: 300% 200%;
+    background-repeat: no-repeat;
+    background-position: 0% 0%;
+    border-radius: inherit;
+    background-origin: border-box;
+    filter: brightness(1.06) saturate(1.05);
+}
+
+.realm-window__bg--qi-refining {
+    background-image: url("qi-refining.jpg");
+    background-size: cover;
+    background-position: left center;
+    background-repeat: no-repeat;
+    filter: brightness(1.05) saturate(1.08);
+}
+
+.realm-window__bg--foundation {
+    background-image: url("foundation-building.jpg");
+    background-size: cover;
+    background-position: left center;
+    background-repeat: no-repeat;
+    filter: brightness(1.04) saturate(1.06);
+}
+
+.realm-window__bg--core-formation {
+    background-image: url("core-formation.jpg");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    filter: brightness(1.05) saturate(1.07);
+}
+
+.realm-window__bg--nascent-soul {
+    background-image: url("nascent-soul.jpg");
+    background-size: cover;
+    background-position: right center;
+    background-repeat: no-repeat;
+    filter: brightness(1.04) saturate(1.06);
+}
+
+.realm-window__bg--soul-transformation {
+    background-image: url("soul-transformation.jpg");
+    background-size: cover;
+    background-position: left center;
+    background-repeat: no-repeat;
+    filter: brightness(1.05) saturate(1.05);
+}
+
+.realm-window__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        rgba(15, 23, 42, 0.5) 0%,
+        rgba(15, 23, 42, 0.22) 38%,
+        rgba(15, 23, 42, 0.05) 65%,
+        transparent 85%
+    );
+}
+
+.realm-window__content {
+    position: relative;
+    z-index: 2;
+}
+
+.realm-window-title {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.95);
+}
+
+.realm-window-desc {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+
+.realm-window-level {
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.88);
+}
